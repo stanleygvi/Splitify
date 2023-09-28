@@ -6,8 +6,6 @@ import (
 	"net/http"
 )
 
-const serverPort = 3333
-
 type track struct {
 	Spotify_id string `json:"spotify_id"`
 	Name       string `json:"name"`
