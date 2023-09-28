@@ -17,9 +17,11 @@ type playlist struct {
 	Items      []track `json:"items"`
 }
 
-func Get_playlist(playlistID string, authToken string) (string, error) {
-	url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?fields=items(track(name,id,artists(name)))", playlistID)
+func Get_playlist(index int, playlistID string, authToken string) (string, error) {
+	// goes in limits of 100 songs
 
+	//url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?offset=100&limit=100fields=items(track(name,id,artists(name)))?limit=100", playlistID)
+	url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?offset=%d&limit=100&fields=items(track(name,id,artists(name)))?limit=100", playlistID, index)
 	// Send an HTTP GET request to the Spotify playlist URL
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
