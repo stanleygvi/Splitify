@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Response struct {
@@ -30,8 +31,8 @@ func Send(num_groups string, songs string) string {
 	apiKey := string(apiKeyBytes)
 
 	instruction := map[string]interface{}{
-		"task":           "Categorize the given songs into separate playlists based on their musical style and content. Provide a unique description and name for each playlist. Use the format below:",
-		"requirements":   fmt.Sprintf("MUST: Ensure every track is listed with a valid Spotify track ID under 'tracks_uri' Spotify track IDs are given by each song with the 'id' key. Tracks should be comma-separated. The total number of track_uris across the playlists should be equal to the number of songs Do not include unrelated content. REQUIRED: Create exactly %s playlists. Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a 'tracks_uri' list of songs. Include a count field that verifies how many track_ids are in the playlist", num_groups),
+		"task":           "Categorize the given songs into separate playlists based on their musical style and content. Provide a unique description and name for each playlist. REQUIRED: Make sure that every song is added to a playlist and its 'id' is added to the track_ids field of its corresponding playlist. Use the format below:",
+		"requirements":   fmt.Sprintf("REQUIRED !!!: Ensure every song is listed with a valid Spotify track ID under 'tracks_uri', Spotify track IDs are given by each song with the 'id' key in each song. REQUIRED!!!!: There should be exactly %d separate track_uris across all the playlists.  REQUIRED: Create exactly %s playlists. Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a 'tracks_uri' list of songs. Include a count field that verifies how many track_ids are in the playlist", strings.Count(songs, "\n"), num_groups),
 		"num_playlists":  num_groups,
 		"example_output": "Playlist 1:\n- Description: Example Description\n- Name: Example Name\n- Public: true\n- tracks_uri: spotify:track:ExampleTrackID1,spotify:track:ExampleTrackID2",
 		"songs":          songs,

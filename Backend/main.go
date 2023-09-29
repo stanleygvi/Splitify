@@ -52,7 +52,7 @@ func convertToString(track Track) string {
 		artists = append(artists, artist.Name)
 	}
 	artistsStr := strings.Join(artists, ", ")
-	return fmt.Sprintf("{id:%s,Name:%s,Artists:%s}", track.SpotifyID, track.Name, artistsStr)
+	return fmt.Sprintf("{id:%s,Name:%s,Artists:%s}\n", track.SpotifyID, track.Name, artistsStr)
 }
 
 // calculate how many slices of 100 goes into length
@@ -146,7 +146,7 @@ func AddPlaylistsFromResponse(resp string, gptPlaylists *GPT_Playlists) {
 func main() {
 	playlist_id := "77cv4tIw4udC3UkKFpDKOH"
 	// user_id := "user_id"
-	authToken := "BQDm8QaEz4zzHNKjqNmZdbgbuSeYcd52uM-M3ZAppaKjwkrNmqI3ApE-0g_L8by9S5jMn_uIdAe7N_ImdAXAWI-znWrgxe808HLH4R4NNq4-7fPRxs4"
+	authToken := "BQCKfQlj1_Rp9XRB0V2QaJ0rwYU2_j9mLaIFGeWWy2ibsiD0wsm6TSvx0gNxOyXofDmSQDKqjM_U5gKUS2q4eNzDB7gIMtUYBWBxePSEFrHamwTO-sM"
 	length := spotify.Get_playlist_length(playlist_id, authToken)
 	slices := calcSlices(length)
 
