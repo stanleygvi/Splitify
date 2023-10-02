@@ -146,7 +146,7 @@ func AddPlaylistsFromResponse(resp string, gptPlaylists *GPT_Playlists) {
 func main() {
 	playlist_id := "77cv4tIw4udC3UkKFpDKOH"
 	// user_id := "user_id"
-	authToken := "BQCKfQlj1_Rp9XRB0V2QaJ0rwYU2_j9mLaIFGeWWy2ibsiD0wsm6TSvx0gNxOyXofDmSQDKqjM_U5gKUS2q4eNzDB7gIMtUYBWBxePSEFrHamwTO-sM"
+	authToken := "BQDF-1sJmq7ZxZSEAKEvonO6Ujb2GL8LeCgiJY6iu7fmlQFtMbLgI6KJkiV02zT5e_Awg2vIYersr5eJ5Mda-Ufazq0MmqiuKzjyoVfWQ146WejzEU8"
 	length := spotify.Get_playlist_length(playlist_id, authToken)
 	slices := calcSlices(length)
 
