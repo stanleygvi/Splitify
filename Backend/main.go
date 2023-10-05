@@ -5,6 +5,8 @@ import (
 	"backend/spotify"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"sync"
 )
@@ -46,13 +48,13 @@ var playlistData struct {
 	Items []PlaylistItem `json:"items"`
 }
 
-func convertToString(track Track) string {
+func convertToString(index int, track Track) string {
 	var artists []string
 	for _, artist := range track.Artists {
 		artists = append(artists, artist.Name)
 	}
 	artistsStr := strings.Join(artists, ", ")
-	return fmt.Sprintf("{id:%s,Name:%s,Artists:%s}\n", track.SpotifyID, track.Name, artistsStr)
+	return fmt.Sprintf("{%d: %s,%s},", index, track.Name, artistsStr)
 }
 
 // calculate how many slices of 100 goes into length
@@ -144,10 +146,14 @@ func AddPlaylistsFromResponse(resp string, gptPlaylists *GPT_Playlists) {
 	}
 }
 func main() {
-	playlist_id := "77cv4tIw4udC3UkKFpDKOH"
+	playlist_id := "2vCOpYeOF6cgvCEwacU3bC"
 	// user_id := "user_id"
-	authToken := "BQDF-1sJmq7ZxZSEAKEvonO6Ujb2GL8LeCgiJY6iu7fmlQFtMbLgI6KJkiV02zT5e_Awg2vIYersr5eJ5Mda-Ufazq0MmqiuKzjyoVfWQ146WejzEU8"
-	length := spotify.Get_playlist_length(playlist_id, authToken)
+	authToken, err := os.ReadFile("spotify/TOKEN.secret")
+	if err != nil {
+		log.Fatalf("Failed to read API key: %v", err)
+	}
+	authTokenstr := string(authToken)
+	length := spotify.Get_playlist_length(playlist_id, authTokenstr)
 	slices := calcSlices(length)
 
 	var wg sync.WaitGroup
@@ -155,13 +161,14 @@ func main() {
 	for i := 0; i < slices; i++ {
 		wg.Add(1)
 		startIndex := i * 100
-		go append_to_playlistData(startIndex, playlist_id, authToken, &wg)
+		go append_to_playlistData(startIndex, playlist_id, authTokenstr, &wg)
 	}
 
 	wg.Wait()
 	songs := ""
-	for _, obj := range playlistData.Items {
-		objStr := convertToString(obj.Track)
+
+	for index, obj := range playlistData.Items {
+		objStr := convertToString(index, obj.Track)
 		songs += objStr
 	}
 
