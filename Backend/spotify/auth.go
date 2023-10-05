@@ -1,37 +1,64 @@
 package spotify
 
 import (
+	// ... other imports ...
 	"encoding/json"
-	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
-	"strings"
+	"os"
 )
 
-func GetAccessToken(code string) (string, error) {
-	// Construct the token request
+var clientID string
+var clientSecret string
+
+const (
+	tokenURL    = "https://accounts.spotify.com/api/token"
+	redirectURI = "http://localhost:8080/callback"
+)
+
+func init() {
+	clientIDBytes, err := os.ReadFile("spotify/CLIENT_ID.secret")
+	if err != nil {
+		log.Fatalf("Failed to read CLIENT_ID: %v", err)
+	}
+	clientID = string(clientIDBytes)
+
+	clientSecretBytes, err := os.ReadFile("spotify/CLIENT_SECRET.secret")
+	if err != nil {
+		log.Fatalf("Failed to read CLIENT_SECRET: %v", err)
+	}
+	clientSecret = string(clientSecretBytes)
+}
+
+// GetToken function: exchanges the authorization code for an access token
+func GetToken(code string) (string, error) {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", "http://localhost:8888/callback") // Your Redirect URI
+	data.Set("redirect_uri", redirectURI)
+	data.Set("client_id", clientID)
+	data.Set("client_secret", clientSecret)
 
-	// Make a POST request to Spotify's token endpoint
-	resp, err := http.Post("https://accounts.spotify.com/api/token", "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	resp, err := http.PostForm(tokenURL, data)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	// Parse the response to get the access token
-	var tokenResponse map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return "", err
 	}
 
-	accessToken, ok := tokenResponse["access_token"].(string)
-	if !ok {
-		return "", fmt.Errorf("Access token not found in response")
+	tokenData := struct {
+		AccessToken string `json:"access_token"`
+	}{}
+
+	if err := json.Unmarshal(body, &tokenData); err != nil {
+		return "", err
 	}
-	fmt.Println(accessToken)
-	return accessToken, nil
+
+	return tokenData.AccessToken, nil
 }
