@@ -30,10 +30,10 @@ func Send(num_groups string, songs string) string {
 	apiKey := string(apiKeyBytes)
 
 	instruction := map[string]interface{}{
-		"task":           fmt.Sprintf("Categorize the given songs into separate playlists based on their musical style and content. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist. REQUIRED: Create exactly %s playlists. Please tell me when you run out of tokens. Use the format below:", num_groups),
-		"requirements":   "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as it's provided id",
+		"task":           fmt.Sprintf("Categorize the given songs into separate playlists based on their musical style and content. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist. REQUIRED: Create exactly %s playlists. Don't include any unrelated data in the response. Use the json format below:", num_groups),
+		"requirements":   "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as it's provided id. There should be no duplicate songs. OUTPUT MUST BE IN JSON FORMAT",
 		"num_playlists":  num_groups,
-		"example_output": "Playlist 1:\n- Description: Example Description\n- Name: Example Name\n- Public: true\n- song_ids: 1, 47, 216",
+		"example_output": "{playlists:[{'name': 'Example Name', 'description': 'Example Description', 'public': true, song_ids:[ 1, 47, 216]}]}",
 		"songs":          songs,
 	}
 
