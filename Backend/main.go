@@ -5,6 +5,8 @@ import (
 	"backend/spotify"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"sync"
 )
@@ -24,38 +26,30 @@ type PlaylistItem struct {
 }
 
 type Playlist struct {
-	Spotify_ID  string  `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Items       []Track `json:"items"`
+	Spotify_ID  string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Indexes     []int  `json:"song_ids"`
+	Track_ids   string
 }
 
 type GPT_Playlists struct {
 	Playlists []Playlist
 }
 
-type Response struct {
-	Choices []struct {
-		Message struct {
-			Content string `json:"content"`
-		} `json:"message"`
-	} `json:"choices"`
-}
-
 var playlistData struct {
 	Items []PlaylistItem `json:"items"`
 }
 
-func convertToString(track Track) string {
+func convertToString(index int, track Track) string {
 	var artists []string
 	for _, artist := range track.Artists {
 		artists = append(artists, artist.Name)
 	}
 	artistsStr := strings.Join(artists, ", ")
-	return fmt.Sprintf("{id:%s,Name:%s,Artists:%s}\n", track.SpotifyID, track.Name, artistsStr)
+	return fmt.Sprintf("{%d: %s,%s},", index, track.Name, artistsStr)
 }
 
-// calculate how many slices of 100 goes into length
 func calcSlices(length int) int {
 	if length <= 0 {
 		return 0
@@ -82,7 +76,6 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 		return
 	}
 
-	// Append the playlistItems.Items to playlistData.Items
 	playlistData.Items = append(playlistData.Items, playlistItems.Items...)
 	fmt.Printf("Appended %d items to playlistData from startIndex %d\n", len(playlistItems.Items), startIndex)
 }
@@ -105,49 +98,26 @@ func ExtractJSONFromContent(content string) (string, error) {
 	}
 	return content[startIndex:], nil
 }
-
-func AddPlaylistsFromResponse(resp string, gptPlaylists *GPT_Playlists) {
-	var response Response
-	if err := json.Unmarshal([]byte(resp), &response); err != nil {
-		fmt.Println("Error unmarshalling main response:", err)
-		return
-	}
-
-	for _, choice := range response.Choices {
-		extractedJSON, err := ExtractJSONFromContent(choice.Message.Content)
-		if err != nil {
-			fmt.Println("Error extracting valid JSON:", err)
-			continue
+func addTrackIDsToPlaylist(gptPlaylists *GPT_Playlists, playlistItems []PlaylistItem) {
+	for i := range gptPlaylists.Playlists {
+		track_ids := ""
+		for _, index := range gptPlaylists.Playlists[i].Indexes {
+			track_ids += fmt.Sprintf("spotify:%s,", playlistItems[index].Track.SpotifyID)
+			//gptPlaylists.Playlists[i].Track_ids = append(gptPlaylists.Playlists[i].Track_ids, playlistItems[index].Track.SpotifyID)
 		}
-
-		var playlistData map[string]interface{}
-		if err := json.Unmarshal([]byte(extractedJSON), &playlistData); err != nil {
-			fmt.Println("Error unmarshalling inner JSON:", err)
-			continue
-		}
-
-		playlistInfo := playlistData["playlist"].(map[string]interface{})
-		uriStrings := playlistData["uri_string"].(string)
-
-		trackURIs := strings.Split(uriStrings, ",")
-		var tracks []Track
-		for _, uri := range trackURIs {
-			tracks = append(tracks, Track{SpotifyID: strings.TrimPrefix(uri, "spotify:track:")})
-		}
-
-		playlist := Playlist{
-			Name:        playlistInfo["name"].(string),
-			Description: playlistInfo["description"].(string),
-			Items:       tracks,
-		}
-		gptPlaylists.Playlists = append(gptPlaylists.Playlists, playlist)
+		gptPlaylists.Playlists[i].Track_ids = track_ids
 	}
 }
+
 func main() {
-	playlist_id := "77cv4tIw4udC3UkKFpDKOH"
+	playlist_id := "2vCOpYeOF6cgvCEwacU3bC"
 	// user_id := "user_id"
-	authToken := "BQDF-1sJmq7ZxZSEAKEvonO6Ujb2GL8LeCgiJY6iu7fmlQFtMbLgI6KJkiV02zT5e_Awg2vIYersr5eJ5Mda-Ufazq0MmqiuKzjyoVfWQ146WejzEU8"
-	length := spotify.Get_playlist_length(playlist_id, authToken)
+	authToken, err := os.ReadFile("spotify/TOKEN.secret")
+	if err != nil {
+		log.Fatalf("Failed to read API key: %v", err)
+	}
+	authTokenstr := string(authToken)
+	length := spotify.Get_playlist_length(playlist_id, authTokenstr)
 	slices := calcSlices(length)
 
 	var wg sync.WaitGroup
@@ -155,20 +125,30 @@ func main() {
 	for i := 0; i < slices; i++ {
 		wg.Add(1)
 		startIndex := i * 100
-		go append_to_playlistData(startIndex, playlist_id, authToken, &wg)
+		go append_to_playlistData(startIndex, playlist_id, authTokenstr, &wg)
 	}
 
 	wg.Wait()
 	songs := ""
-	for _, obj := range playlistData.Items {
-		objStr := convertToString(obj.Track)
+
+	for index, obj := range playlistData.Items {
+		objStr := convertToString(index, obj.Track)
 		songs += objStr
 	}
 
 	gpt_resp := openai.Send("5", songs)
 	fmt.Println(gpt_resp)
-	// var gptPlaylists GPT_Playlists
-	// AddPlaylistsFromResponse(gpt_resp, &gptPlaylists)
+	var gptPlaylists GPT_Playlists
+	if err := json.Unmarshal([]byte(gpt_resp), &gptPlaylists); err != nil {
+		fmt.Println("Error unmarshalling main response:", err)
+		return
+	}
+	// function to add the track ids of each index to the 'Track_ids' value of the playlist
 	// fmt.Println(gptPlaylists.Playlists)
 
+	addTrackIDsToPlaylist(&gptPlaylists, playlistData.Items)
+	fmt.Println(gptPlaylists.Playlists[0].Track_ids)
+	for _, playlist := range gptPlaylists.Playlists {
+		spotify.Add_songs(playlist.Spotify_ID, playlist.Track_ids, authTokenstr)
+	}
 }

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 )
 
 type Response struct {
@@ -31,10 +30,10 @@ func Send(num_groups string, songs string) string {
 	apiKey := string(apiKeyBytes)
 
 	instruction := map[string]interface{}{
-		"task":           "Categorize the given songs into separate playlists based on their musical style and content. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist and its 'id' is added to the tracks_uri field of its corresponding playlist. MANDATORY!!!!!: ALL SONGS MUST BE ADDED TO A PLAYLIST. Use the format below:",
-		"requirements":   fmt.Sprintf("REQUIRED !!!: Ensure every song is listed with a valid Spotify track ID under 'tracks_uri', Spotify track IDs are given by each song with the 'id' key in each song. REQUIRED!!!!: There should be exactly %d separate track_uris across all the playlists.  REQUIRED: Create exactly %s playlists. Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a 'tracks_uri' list of songs. Include a count field that verifies how many track_ids are in the playlist", strings.Count(songs, "\n"), num_groups),
+		"task":           fmt.Sprintf("Categorize the given songs into separate playlists based on their musical style and content. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist. REQUIRED: Create exactly %s playlists. Don't include any unrelated data in the response. Use the json format below:", num_groups),
+		"requirements":   "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as it's provided id. There should be no duplicate songs. OUTPUT MUST BE IN JSON FORMAT",
 		"num_playlists":  num_groups,
-		"example_output": "Playlist 1:\n- Description: Example Description\n- Name: Example Name\n- Public: true\n- tracks_uri: spotify:track:ExampleTrackID1,spotify:track:ExampleTrackID2",
+		"example_output": "{playlists:[{'name': 'Example Name', 'description': 'Example Description', 'public': true, song_ids:[ 1, 47, 216]}]}",
 		"songs":          songs,
 	}
 
@@ -89,5 +88,6 @@ func Send(num_groups string, songs string) string {
 	}
 
 	content := response.Choices[0].Message.Content
+	// content := string(responseBody)
 	return content
 }
