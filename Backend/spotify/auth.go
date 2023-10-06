@@ -2,12 +2,15 @@ package spotify
 
 import (
 	// ... other imports ...
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 var clientID string
@@ -61,4 +64,67 @@ func GetToken(code string) (string, error) {
 	}
 
 	return tokenData.AccessToken, nil
+}
+func IsAccessTokenValid(accessToken string) bool {
+	// Try to fetch user profile as a test. Adjust as necessary.
+	resp, err := http.Get("https://api.spotify.com/v1/me")
+	if err != nil {
+
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 401 {
+
+		return false
+	}
+
+	return true
+}
+func RefreshAccessToken(refreshToken string) (string, error) {
+	endpoint := "https://accounts.spotify.com/api/token"
+
+	clientID, err := os.ReadFile("CLIENT_ID.secret")
+	if err != nil {
+		return "", err
+	}
+
+	clientSecret, err := os.ReadFile("CLIENT_SECRET.secret")
+	if err != nil {
+		return "", err
+	}
+
+	// Base64 encoding the clientID and clientSecret
+	auth := base64.StdEncoding.EncodeToString([]byte(string(clientID) + ":" + string(clientSecret)))
+
+	data := url.Values{}
+	data.Set("grant_type", "refresh_token")
+	data.Set("refresh_token", refreshToken)
+
+	req, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Authorization", "Basic "+auth)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Failed to refresh token: %s", resp.Status)
+	}
+
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	newToken, ok := result["access_token"].(string)
+	if !ok {
+		return "", fmt.Errorf("Token not found in response")
+	}
+
+	return newToken, nil
 }
