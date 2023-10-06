@@ -33,33 +33,29 @@ function PlaylistInputPage() {
     }
 
     return (
-        <div className="playlist-container">
+        <div>
             <h2>Select Playlists to Process</h2>
             <ul className="playlist-list">
                 {playlists.map(playlist => (
-                    <li key={playlist.id} className="playlist-item">
-                        <label>
-                            <input 
-                                type="checkbox"
-                                value={playlist.id}
-                                checked={selectedPlaylists.includes(playlist.id)}
-                                onChange={() => handlePlaylistSelection(playlist.id)}
-                            />
-                            <div className="playlist-image-container">
-                                <img 
-                                    className="playlist-image"
-                                    src={playlist.images[0]?.url || "https://www.fredsmithxmastrees.com/wp-content/uploads/2017/04/Square-500x500-dark-grey.png"} 
-                                    alt={playlist.name + " cover image"}
-                                />
-                            </div>
-                            {playlist.name}
-                        </label>
+                    <li 
+                      key={playlist.id} 
+                      className={selectedPlaylists.includes(playlist.id) ? 'selected' : ''} 
+                      onClick={() => handlePlaylistSelection(playlist.id)}
+                    >
+                        <img 
+                            src={playlist.images[0]?.url || "https://www.fredsmithxmastrees.com/wp-content/uploads/2017/04/Square-500x500-dark-grey.png"} 
+                            alt={playlist.name + " cover image"} 
+                            width={300} 
+                            height={300}
+                        />
+                        <p>{playlist.name}</p>
                     </li>
                 ))}
             </ul>
             <button onClick={handleProcessPlaylists}>Process Selected Playlists</button>
         </div>
     );
+
 }
 
 export default PlaylistInputPage;

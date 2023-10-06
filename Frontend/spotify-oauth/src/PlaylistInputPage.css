@@ -64,3 +64,18 @@ button {
 button:hover {
     background-color: #1AA34A;
 }
+
+li {
+    list-style-type: none;
+    cursor: pointer;
+    transition: border 0.3s ease;
+}
+
+li.selected img {
+    border: 3px solid #1DB954;  /* Spotify green border for selected playlists */
+}
+
+img {
+    border-radius: 5px;
+    transition: border 0.3s ease;
+}
