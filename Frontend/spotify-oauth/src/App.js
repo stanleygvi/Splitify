@@ -1,26 +1,31 @@
-import React from 'react';
-import './App.css';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import LoginPage from './LoginPage';
+import PlaylistInputPage from './PlaylistInputPage';
+import './app.css';
 
 function App() {
-    const authenticateWithSpotify = () => {
-        // Implement your Spotify authentication logic here.
-        // For simplicity, let's just redirect to Spotify's OAuth page.
-        const clientId = "YOUR_SPOTIFY_CLIENT_ID";
-        const redirectUri = encodeURIComponent(window.location.href); // Or your specific redirect URL
-        window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${redirectUri}`;
-    };
-
     return (
-        <div className="app">
-            <header className="app-header">
-            <h1 className="app-title">Splitify</h1>
-            <button className="spotify-auth-btn" onClick={authenticateWithSpotify}>
-                Authenticate with Spotify
-            </button>
-        </header>
-  
-        </div>
+        <Router>
+            <div className="app">
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/input-playlist" element={<PlaylistInputPage />} />
+                    <Route path="*" element={<DefaultComponent />} />
+                </Routes>
+            </div>
+        </Router>
     );
+}
+
+function DefaultComponent() {
+    let navigate = useNavigate();
+
+    useEffect(() => {
+        navigate('/login');
+    }, [navigate]);
+
+    return null;
 }
 
 export default App;
