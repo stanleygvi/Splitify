@@ -1,0 +1,66 @@
+.playlist-container {
+    width: 100%;
+    max-width: 1200px; /* Increased the width for larger layout */
+    margin: 0 auto;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.playlist-list {
+    list-style-type: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns layout */
+    gap: 20px; /* Space between the grid items */
+}
+
+.playlist-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    border: 1px solid #e1e1e1;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.playlist-image-container {
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.playlist-image {
+    width: 200px;  /* Increased the image width */
+    height: 200px; /* Increased the image height */
+    border-radius: 5px;
+    object-fit: cover; /* This ensures the images remain proportional */
+}
+
+button {
+    display: block;
+    margin: 20px auto;
+    padding: 20px 40px; /* Increased padding for a bigger button */
+    font-size: 1.2em; /* Increased font size */
+    background-color: #1DB954; /* Spotify Green */
+    color: #FFFFFF;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Media query for mobile view */
+@media (max-width: 768px) {
+    .playlist-list {
+        grid-template-columns: 1fr; /* Single column for mobile view */
+    }
+}
+
+button:hover {
+    background-color: #1AA34A;
+}

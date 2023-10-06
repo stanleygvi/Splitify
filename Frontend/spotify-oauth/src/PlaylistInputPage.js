@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import './PlaylistInputPage.css'; // Importing the CSS file for styling
 
 function PlaylistInputPage() {
     const [playlists, setPlaylists] = useState([]);
@@ -28,16 +29,15 @@ function PlaylistInputPage() {
     }
 
     const handleProcessPlaylists = () => {
-        // Handle the processing logic here (e.g., send selected playlists to the server for processing).
         console.log("Selected Playlists:", selectedPlaylists);
     }
 
     return (
-        <div>
+        <div className="playlist-container">
             <h2>Select Playlists to Process</h2>
-            <ul>
+            <ul className="playlist-list">
                 {playlists.map(playlist => (
-                    <li key={playlist.id}>
+                    <li key={playlist.id} className="playlist-item">
                         <label>
                             <input 
                                 type="checkbox"
@@ -45,12 +45,13 @@ function PlaylistInputPage() {
                                 checked={selectedPlaylists.includes(playlist.id)}
                                 onChange={() => handlePlaylistSelection(playlist.id)}
                             />
-                            <img 
-                                src={playlist.images[0]?.url || "https://www.fredsmithxmastrees.com/wp-content/uploads/2017/04/Square-500x500-dark-grey.png"} 
-                                alt={playlist.name + " cover image"} 
-                                width={60} 
-                                height={60}
-                            />
+                            <div className="playlist-image-container">
+                                <img 
+                                    className="playlist-image"
+                                    src={playlist.images[0]?.url || "https://www.fredsmithxmastrees.com/wp-content/uploads/2017/04/Square-500x500-dark-grey.png"} 
+                                    alt={playlist.name + " cover image"}
+                                />
+                            </div>
                             {playlist.name}
                         </label>
                     </li>
