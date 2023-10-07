@@ -101,14 +101,18 @@ func addTrackIDsToPlaylist(gptPlaylists *GPT_Playlists, playlistItems []Playlist
 	for i := range gptPlaylists.Playlists {
 		var trackUris []string
 		for _, index := range gptPlaylists.Playlists[i].Indexes {
+			if index >= len(playlistItems) {
+				log.Printf("Index out of range: %d for playlistItems of length %d", index, len(playlistItems))
+				continue
+			}
 			spotifyId := playlistItems[index].Track.SpotifyID
 			if len(spotifyId) > 5 && spotifyId != "" {
 				trackUris = append(trackUris, fmt.Sprintf("spotify:track:%s", spotifyId))
 			}
-
 		}
 		gptPlaylists.Playlists[i].Track_ids = strings.Join(trackUris, ",")
 	}
+
 }
 
 func generateRandomString(length int) string {
@@ -268,7 +272,7 @@ func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, d
 
 	var wg_append sync.WaitGroup
 
-	for i := 0; i < slices; i++ {
+	for i := 0; i < slices && i < 5; i++ {
 		wg_append.Add(1)
 		startIndex := i * 100
 
@@ -333,10 +337,10 @@ func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var playlistDataStore PlaylistDataStore
 	var wg sync.WaitGroup
 	for _, id := range playlistIDS.PlaylistIDS {
 		wg.Add(1)
+		var playlistDataStore PlaylistDataStore
 		go processPlaylist(string(authToken), id, &wg, &playlistDataStore)
 	}
 
