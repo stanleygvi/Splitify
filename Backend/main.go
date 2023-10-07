@@ -97,19 +97,17 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 	log.Printf("Appended %d items to playlistData from startIndex %d\n", len(playlistItems.Items), startIndex)
 }
 
-func add_playlist_to_spotify(user_id string, songs string, auth string, playlist_id string, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	spotify.Add_songs(playlist_id, songs, auth)
-}
-
 func addTrackIDsToPlaylist(gptPlaylists *GPT_Playlists, playlistItems []PlaylistItem) {
 	for i := range gptPlaylists.Playlists {
-		track_ids := ""
+		var trackUris []string
 		for _, index := range gptPlaylists.Playlists[i].Indexes {
-			track_ids += fmt.Sprintf("spotify:track:%s,", playlistItems[index].Track.SpotifyID)
+			spotifyId := playlistItems[index].Track.SpotifyID
+			if len(spotifyId) > 5 && spotifyId != "" {
+				trackUris = append(trackUris, fmt.Sprintf("spotify:track:%s", spotifyId))
+			}
+
 		}
-		gptPlaylists.Playlists[i].Track_ids = track_ids
+		gptPlaylists.Playlists[i].Track_ids = strings.Join(trackUris, ",")
 	}
 }
 
@@ -300,7 +298,18 @@ func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, d
 			return
 		}
 
-		spotify.Add_songs(playlist_id, playlist.Track_ids, authToken)
+		songs := strings.Split(playlist.Track_ids, ",")
+
+		for i := 0; i < len(songs); i += 100 {
+			end := i + 100
+			if end > len(songs) {
+				end = len(songs)
+			}
+
+			spotify.Add_songs(playlist_id, songs[i:end], authToken, i)
+
+		}
+
 	}
 }
 
