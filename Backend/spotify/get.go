@@ -56,7 +56,7 @@ func Get_user_id(authToken string) string {
 		fmt.Println("Error parsing JSON:", err)
 
 	}
-	fmt.Println("User ID response:", string(body))
+	//fmt.Println("User ID response:", string(body))
 
 	return user.ID
 

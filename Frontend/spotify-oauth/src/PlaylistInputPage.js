@@ -30,6 +30,26 @@ function PlaylistInputPage() {
 
     const handleProcessPlaylists = () => {
         console.log("Selected Playlists:", selectedPlaylists);
+        
+        fetch("http://localhost:8888/process-playlist", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ playlistIds: selectedPlaylists })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Response from server:", data);
+        })
+        .catch(error => {
+            console.error("There was a problem with the fetch operation:", error);
+        });
     }
 
     return (

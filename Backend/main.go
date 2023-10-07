@@ -5,6 +5,7 @@ import (
 	"backend/spotify"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -16,7 +17,7 @@ import (
 	"github.com/rs/cors"
 )
 
-// Your data structures
+// Data structures
 type Artist struct {
 	Name string `json:"name"`
 }
@@ -43,16 +44,21 @@ type GPT_Playlists struct {
 	Playlists []Playlist
 }
 
-var playlistData struct {
+type PlaylistDataStore struct {
 	Items []PlaylistItem `json:"items"`
 }
 
-// Your helper functions
+type PlaylistIDS struct {
+	PlaylistIDS []string `json:"playlistIds"`
+}
+
+// Helper functions
 func enableCORS(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
+
 func convertToString(index int, track Track) string {
 	var artists []string
 	for _, artist := range track.Artists {
@@ -69,12 +75,12 @@ func calcSlices(length int) int {
 	return (length + 99) / 100
 }
 
-func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitGroup) {
+func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitGroup, dataStore *PlaylistDataStore) {
 	defer wg.Done()
 
 	resp, err := spotify.Get_playlist_children(startIndex, id, authToken)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println("Error fetching playlist children:", err.Error())
 		return
 	}
 
@@ -83,21 +89,17 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 	}
 
 	if err := json.Unmarshal([]byte(resp), &playlistItems); err != nil {
-		fmt.Println("Error:", err)
+		log.Println("Error unmarshalling playlist items:", err)
 		return
 	}
 
-	playlistData.Items = append(playlistData.Items, playlistItems.Items...)
-	fmt.Printf("Appended %d items to playlistData from startIndex %d\n", len(playlistItems.Items), startIndex)
+	dataStore.Items = append(dataStore.Items, playlistItems.Items...)
+	log.Printf("Appended %d items to playlistData from startIndex %d\n", len(playlistItems.Items), startIndex)
 }
 
-func add_playlist_to_spotify(user_id string, songs string, auth string, wg *sync.WaitGroup) {
+func add_playlist_to_spotify(user_id string, songs string, auth string, playlist_id string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	playlist_id, err := spotify.Create_playlist(user_id, auth)
-	if err != nil {
-		return
-	}
 	spotify.Add_songs(playlist_id, songs, auth)
 }
 
@@ -105,7 +107,7 @@ func addTrackIDsToPlaylist(gptPlaylists *GPT_Playlists, playlistItems []Playlist
 	for i := range gptPlaylists.Playlists {
 		track_ids := ""
 		for _, index := range gptPlaylists.Playlists[i].Indexes {
-			track_ids += fmt.Sprintf("spotify:%s,", playlistItems[index].Track.SpotifyID)
+			track_ids += fmt.Sprintf("spotify:track:%s,", playlistItems[index].Track.SpotifyID)
 		}
 		gptPlaylists.Playlists[i].Track_ids = track_ids
 	}
@@ -128,29 +130,25 @@ const (
 // HTTP Handlers
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 
-	authToken, err := os.ReadFile("spotify/TOKEN.secret") // Use whatever method you use to retrieve the token here.
+	authToken, err := os.ReadFile("spotify/TOKEN.secret")
 	if err != nil || !spotify.IsAccessTokenValid(string(authToken)) {
 		redirectToSpotifyLogin(w, r)
 		return
 	}
 
-	// If the token is not valid, try to use the refresh token
 	if !spotify.IsAccessTokenValid(string(authToken)) {
 		refreshToken, err := os.ReadFile("spotify/REFRESH_TOKEN.secret")
 		if err != nil {
-			// If there's an error reading the refresh token, it probably doesn't exist. Redirect to re-login.
 			redirectToSpotifyLogin(w, r)
 			return
 		}
 
-		// Use the refresh token to get a new access token
 		newAccessToken, err := spotify.RefreshAccessToken(string(refreshToken))
 		if err != nil {
 			http.Error(w, "Failed to refresh access token", http.StatusInternalServerError)
 			return
 		}
 
-		// Store the new access token for future use
 		os.WriteFile("spotify/TOKEN.secret", []byte(newAccessToken), 0600)
 	}
 
@@ -178,8 +176,6 @@ func redirectToSpotifyLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL+"?"+params.Encode(), http.StatusFound)
 }
 
-var authStr string
-
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	if code == "" {
@@ -193,14 +189,12 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save token for future use
 	err = os.WriteFile("spotify/TOKEN.secret", []byte(token), 0600)
 	if err != nil {
 		http.Error(w, "Error saving token", http.StatusInternalServerError)
 		return
 	}
 
-	// Redirect to the desired page
 	http.Redirect(w, r, "https://splitify-fac76.web.app/input-playlist", http.StatusFound)
 }
 
@@ -249,14 +243,13 @@ func exchangeCodeForToken(code string) (string, error) {
 }
 
 func getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
-
-	authToken, err := os.ReadFile("spotify/TOKEN.secret") // Use whatever method you use to retrieve the token here.
+	authToken, err := os.ReadFile("spotify/TOKEN.secret")
 	if err != nil {
 		http.Error(w, "Failed to get auth token", http.StatusInternalServerError)
 		return
 	}
 	playlists := spotify.Get_all_playlists(string(authToken))
-	fmt.Println("Playlists fetched:", playlists)
+
 	jsonData, err := json.Marshal(playlists)
 	if err != nil {
 		http.Error(w, "Failed to generate JSON", http.StatusInternalServerError)
@@ -265,32 +258,29 @@ func getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
-
-	// For the example, I'll assume you're fetching the authToken directly.
-	// In practice, you'd want to retrieve this from where you stored it after the /callback
-	authToken, err := os.ReadFile("spotify/TOKEN.secret") // Use whatever method you use to retrieve the token here.
-	if err != nil {
-		http.Error(w, "Failed to get auth token", http.StatusInternalServerError)
+func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, dataStore *PlaylistDataStore) {
+	defer wg.Done()
+	length := spotify.Get_playlist_length(playlist_id, authToken)
+	if length == -1 {
+		log.Println("Error fetching playlist length for:", playlist_id)
 		return
 	}
-	authStr := string(authToken)
-	playlist_id := "2vCOpYeOF6cgvCEwacU3bC" // You might want this to be dynamic in the future
-	length := spotify.Get_playlist_length(playlist_id, authStr)
+
 	slices := calcSlices(length)
 
-	var wg sync.WaitGroup
+	var wg_append sync.WaitGroup
 
 	for i := 0; i < slices; i++ {
-		wg.Add(1)
+		wg_append.Add(1)
 		startIndex := i * 100
-		go append_to_playlistData(startIndex, playlist_id, authStr, &wg)
+
+		go append_to_playlistData(startIndex, playlist_id, authToken, &wg_append, dataStore)
 	}
 
-	wg.Wait()
+	wg_append.Wait()
 	songs := ""
 
-	for index, obj := range playlistData.Items {
+	for index, obj := range dataStore.Items {
 		objStr := convertToString(index, obj.Track)
 		songs += objStr
 	}
@@ -298,14 +288,50 @@ func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	gpt_resp := openai.Send("5", songs)
 	var gptPlaylists GPT_Playlists
 	if err := json.Unmarshal([]byte(gpt_resp), &gptPlaylists); err != nil {
-		http.Error(w, "Error unmarshalling main response: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error unmarshalling GPT response:", err)
 		return
 	}
 
-	addTrackIDsToPlaylist(&gptPlaylists, playlistData.Items)
+	addTrackIDsToPlaylist(&gptPlaylists, dataStore.Items)
+	user_id := spotify.Get_user_id(string(authToken))
 	for _, playlist := range gptPlaylists.Playlists {
-		spotify.Add_songs(playlist.Spotify_ID, playlist.Track_ids, authStr)
+		playlist_id, err := spotify.Create_playlist(user_id, string(authToken), playlist.Name, playlist.Description)
+		if err != nil {
+			return
+		}
+
+		spotify.Add_songs(playlist_id, playlist.Track_ids, authToken)
 	}
+}
+
+func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
+	authToken, err := os.ReadFile("spotify/TOKEN.secret")
+	if err != nil {
+		http.Error(w, "Failed to get auth token", http.StatusInternalServerError)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	var playlistIDS PlaylistIDS
+	if err := json.Unmarshal(body, &playlistIDS); err != nil {
+		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	var playlistDataStore PlaylistDataStore
+	var wg sync.WaitGroup
+	for _, id := range playlistIDS.PlaylistIDS {
+		wg.Add(1)
+		go processPlaylist(string(authToken), id, &wg, &playlistDataStore)
+	}
+
+	wg.Wait()
 
 	w.Write([]byte("Playlists updated successfully!"))
 }

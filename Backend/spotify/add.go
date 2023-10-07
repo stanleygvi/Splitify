@@ -5,16 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 )
 
-func Create_playlist(user_id string, auth string) (string, error) {
+func Create_playlist(user_id string, auth string, name string, description string) (string, error) {
 	url := fmt.Sprintf("https://api.spotify.com/v1/users/%s/playlists", user_id)
-	payload := []byte(`{
-		"name": "New Playlist",
-		"description": "New playlist description",
+	payload := []byte(fmt.Sprintf(`{
+		"name": "%s",
+		"description": " %s - created using https://splitify-fac76.web.app/",
 		"public": true
-	}`)
+	}`, name, description))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
@@ -58,23 +60,40 @@ func Create_playlist(user_id string, auth string) (string, error) {
 }
 
 func Add_songs(playlist_id string, songs string, auth string) {
-
-	// URL for the POST request
+	// Define the API endpoint
 	url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks", playlist_id)
 
-	// Request payload data
-	payload := []byte(`{
-		"uris": [
-			` + songs + `
-		],
-		"position": 0
-	}`)
+	// Split the songs string into a slice
+	songsSlice := strings.Split(songs, ",")
+	// fmt.Println(songsSlice)
+	var validURIs []string
+	for _, song := range songsSlice {
+		trimmedSong := strings.TrimSpace(song)
+		if trimmedSong != "" {
+			validURIs = append(validURIs, trimmedSong)
+		}
+	}
+	// Create a struct for our request body
+	type requestBody struct {
+		URIs     []string `json:"uris"`
+		Position int      `json:"position"`
+	}
 
-	// Create a new HTTP client
-	client := &http.Client{}
+	// Fill the struct with our data
+	bodyData := requestBody{
+		URIs:     validURIs,
+		Position: 0,
+	}
 
-	// Create a new POST request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	// Convert our struct to JSON
+	jsonData, err := json.Marshal(bodyData)
+	if err != nil {
+		fmt.Println("Error marshalling the JSON:", err)
+		return
+	}
+	fmt.Println("Sending JSON Payload:", string(jsonData))
+	// Create the HTTP request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
@@ -84,18 +103,21 @@ func Add_songs(playlist_id string, songs string, auth string) {
 	req.Header.Set("Authorization", "Bearer "+auth)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send the request
-	resp, err := client.Do(req)
+	// Send the request using the default client
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
 		return
 	}
-	defer resp.Body.Close()
 
-	// Check the response status code
-	if resp.Status == "200 OK" {
-		fmt.Println("Request was successful!")
-	} else {
-		fmt.Println("Request failed with status:", resp.Status)
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
 	}
+	fmt.Println("Response Body:", string(bodyBytes))
+
+	// Print the response status
+	fmt.Println("Response Status:", resp.Status)
 }
