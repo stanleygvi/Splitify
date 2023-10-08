@@ -1,7 +1,6 @@
 package spotify
 
 import (
-	// ... other imports ...
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -35,7 +34,6 @@ func init() {
 	clientSecret = string(clientSecretBytes)
 }
 
-// GetToken function: exchanges the authorization code for an access token
 func GetToken(code string) (string, error) {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
@@ -66,7 +64,7 @@ func GetToken(code string) (string, error) {
 	return tokenData.AccessToken, nil
 }
 func IsAccessTokenValid(accessToken string) bool {
-	// Try to fetch user profile as a test. Adjust as necessary.
+
 	resp, err := http.Get("https://api.spotify.com/v1/me")
 	if err != nil {
 
@@ -94,7 +92,6 @@ func RefreshAccessToken(refreshToken string) (string, error) {
 		return "", err
 	}
 
-	// Base64 encoding the clientID and clientSecret
 	auth := base64.StdEncoding.EncodeToString([]byte(string(clientID) + ":" + string(clientSecret)))
 
 	data := url.Values{}

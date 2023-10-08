@@ -39,7 +39,6 @@ func Create_playlist(user_id string, auth string, name string, description strin
 		return "", fmt.Errorf("Failed to create playlist, status code: %s", resp.Status)
 	}
 
-	// Parse the JSON response
 	var responseData map[string]interface{}
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&responseData); err != nil {
@@ -47,7 +46,6 @@ func Create_playlist(user_id string, auth string, name string, description strin
 		return "", err
 	}
 
-	// Extract the "id" field from the response
 	id, ok := responseData["id"].(string)
 	if !ok {
 		fmt.Println("Error extracting playlist ID from response")
@@ -58,40 +56,34 @@ func Create_playlist(user_id string, auth string, name string, description strin
 }
 
 func Add_songs(playlist_id string, songs []string, auth string, index int) {
-	// Define the API endpoint
+
 	url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks", playlist_id)
 
-	// Create a struct for our request body
 	type requestBody struct {
 		URIs     []string `json:"uris"`
 		Position int      `json:"position"`
 	}
 
-	// Fill the struct with our data
 	bodyData := requestBody{
 		URIs:     songs,
 		Position: index,
 	}
 
-	// Convert our struct to JSON
 	jsonData, err := json.Marshal(bodyData)
 	if err != nil {
 		fmt.Println("Error marshalling the JSON:", err)
 		return
 	}
 
-	// Create the HTTP request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
 	}
 
-	// Set headers
 	req.Header.Set("Authorization", "Bearer "+auth)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send the request using the default client
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
@@ -99,7 +91,7 @@ func Add_songs(playlist_id string, songs []string, auth string, index int) {
 	}
 
 	defer resp.Body.Close()
-	// Read the response body
+
 	if resp.StatusCode != 201 {
 		fmt.Println(resp.Status)
 	}
