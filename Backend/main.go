@@ -79,6 +79,7 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 	defer wg.Done()
 
 	resp, err := spotify.Get_playlist_children(startIndex, id, authToken)
+	fmt.Println("CHILDREN:\n", resp)
 	if err != nil {
 		log.Println("Error fetching playlist children:", err.Error())
 		return
@@ -92,7 +93,7 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 		log.Println("Error unmarshalling playlist items:", err)
 		return
 	}
-
+	log.Println("\nPlayList Items:\n", playlistItems)
 	dataStore.Items = append(dataStore.Items, playlistItems.Items...)
 	log.Printf("Appended %d items to playlistData from startIndex %d\n", len(playlistItems.Items), startIndex)
 }
@@ -125,51 +126,42 @@ func generateRandomString(length int) string {
 }
 
 const (
-	redirectURI = "http://localhost:8888/callback"
+	redirectURI = "http://localhost:8080/callback"
 	authURL     = "https://accounts.spotify.com/authorize"
 )
 
-// HTTP Handlers
 func loginHandler(w http.ResponseWriter, r *http.Request) {
+	// Attempt to retrieve the user's access token directly from the environment variable.
+	authToken := os.Getenv("TOKEN")
+	if !spotify.IsAccessTokenValid(authToken) {
+		// If the access token is not valid or doesn't exist, try to refresh it.
+		refreshToken := os.Getenv("REFRESH_TOKEN")
+		if refreshToken != "" {
+			newAccessToken, err := spotify.RefreshAccessToken(refreshToken)
+			if err != nil || newAccessToken == "" {
+				// If refreshing the token fails, redirect to Spotify login to re-authenticate.
+				redirectToSpotifyLogin(w, r)
+				return
+			}
 
-	authToken, err := os.ReadFile("spotify/TOKEN.secret")
-	if err != nil || !spotify.IsAccessTokenValid(string(authToken)) {
-		redirectToSpotifyLogin(w, r)
-		return
-	}
-
-	if !spotify.IsAccessTokenValid(string(authToken)) {
-		refreshToken, err := os.ReadFile("spotify/REFRESH_TOKEN.secret")
-		if err != nil {
+			// Update the access token in the environment variable.
+			os.Setenv("TOKEN", newAccessToken)
+		} else {
+			// No refresh token available, redirect to Spotify login.
 			redirectToSpotifyLogin(w, r)
 			return
 		}
-
-		newAccessToken, err := spotify.RefreshAccessToken(string(refreshToken))
-		if err != nil {
-			http.Error(w, "Failed to refresh access token", http.StatusInternalServerError)
-			return
-		}
-
-		os.WriteFile("spotify/TOKEN.secret", []byte(newAccessToken), 0600)
 	}
-
-	redirectToSpotifyLogin(w, r)
 }
 
 func redirectToSpotifyLogin(w http.ResponseWriter, r *http.Request) {
-	clientID, err := os.ReadFile("spotify/CLIENT_ID.secret")
-	if err != nil {
-		http.Error(w, "Failed to read client ID", http.StatusInternalServerError)
-		return
-	}
-
+	clientID := os.Getenv("CLIENT_ID")
 	state := generateRandomString(16)
 	scope := "user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-collaborative"
 
 	params := url.Values{}
 	params.Add("response_type", "code")
-	params.Add("client_id", string(clientID))
+	params.Add("client_id", clientID)
 	params.Add("scope", scope)
 	params.Add("show_dialog", "true")
 	params.Add("redirect_uri", redirectURI)
@@ -187,29 +179,18 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := exchangeCodeForToken(code)
 	if err != nil {
+		log.Printf("Error exchanging code for token: %s", err)
 		http.Error(w, "Error exchanging code for token", http.StatusInternalServerError)
 		return
 	}
-
-	err = os.WriteFile("spotify/TOKEN.secret", []byte(token), 0600)
-	if err != nil {
-		http.Error(w, "Error saving token", http.StatusInternalServerError)
-		return
-	}
-
+	os.Setenv("TOKEN", token)
 	http.Redirect(w, r, "https://splitify-fac76.web.app/input-playlist", http.StatusFound)
 }
 
 func exchangeCodeForToken(code string) (string, error) {
-	clientID, err := os.ReadFile("spotify/CLIENT_ID.secret")
-	if err != nil {
-		return "", err
-	}
+	clientID := os.Getenv("CLIENT_ID")
 
-	clientSecret, err := os.ReadFile("spotify/CLIENT_SECRET.secret")
-	if err != nil {
-		return "", err
-	}
+	clientSecret := os.Getenv("CLIENT_SECRET")
 
 	endpoint := "https://accounts.spotify.com/api/token"
 	data := url.Values{}
@@ -218,7 +199,7 @@ func exchangeCodeForToken(code string) (string, error) {
 	data.Set("redirect_uri", redirectURI)
 	data.Set("client_id", string(clientID))
 	data.Set("client_secret", string(clientSecret))
-
+	// fmt.Println(data)
 	client := &http.Client{}
 	r, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -240,29 +221,35 @@ func exchangeCodeForToken(code string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return tokenResponse.AccessToken, nil
 }
 
 func getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
-	authToken, err := os.ReadFile("spotify/TOKEN.secret")
-	if err != nil {
-		http.Error(w, "Failed to get auth token", http.StatusInternalServerError)
+	// Retrieve the access token directly from the environment variable.
+	authToken := os.Getenv("TOKEN")
+	// fmt.Println(authToken)
+	if !spotify.IsAccessTokenValid(authToken) {
+		// This means the access token is not valid or not found.
+		http.Error(w, "Authorization required: no access token available", http.StatusUnauthorized)
 		return
 	}
-	playlists := spotify.Get_all_playlists(string(authToken))
+
+	playlists := spotify.Get_all_playlists(authToken)
 
 	jsonData, err := json.Marshal(playlists)
 	if err != nil {
-		http.Error(w, "Failed to generate JSON", http.StatusInternalServerError)
+		http.Error(w, "Failed to generate JSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
 }
 
 func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, dataStore *PlaylistDataStore) {
 	defer wg.Done()
 	length := spotify.Get_playlist_length(playlist_id, authToken)
+	fmt.Println(length)
 	if length == -1 {
 		log.Println("Error fetching playlist length for:", playlist_id)
 		return
@@ -289,16 +276,32 @@ func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, d
 
 	gpt_resp := openai.Send("5", songs)
 	var gptPlaylists GPT_Playlists
-	if err := json.Unmarshal([]byte(gpt_resp), &gptPlaylists); err != nil {
-		log.Println("Error unmarshalling GPT response:", err)
-		return
-	}
+	// Find the start and end indices of the actual JSON content.
+	startIndex := strings.Index(gpt_resp, "{")
+	endIndex := strings.LastIndex(gpt_resp, "}") + 1 // +1 to include the closing brace.
+	// Extract the JSON content.
+	if startIndex != -1 && endIndex != -1 && endIndex > startIndex {
+		jsonContent := gpt_resp[startIndex:endIndex]
 
+		// Unmarshal the JSON content into the struct.
+		err := json.Unmarshal([]byte(jsonContent), &gptPlaylists)
+		if err != nil {
+			log.Printf("Error unmarshalling GPT response: %v", err)
+			return
+		}
+
+	} else {
+		log.Println("Valid JSON content not found in the response")
+	}
+	log.Println("Finished unmarshalling: \n", gptPlaylists)
 	addTrackIDsToPlaylist(&gptPlaylists, dataStore.Items)
+	// log.Println("added tracks to playlists:\n", res)
 	user_id := spotify.Get_user_id(string(authToken))
 	for _, playlist := range gptPlaylists.Playlists {
 		playlist_id, err := spotify.Create_playlist(user_id, string(authToken), playlist.Name, playlist.Description)
+		log.Println("Playlist ID: ", playlist_id)
 		if err != nil {
+			log.Println("Error creating playlist")
 			return
 		}
 
@@ -318,9 +321,9 @@ func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, d
 }
 
 func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
-	authToken, err := os.ReadFile("spotify/TOKEN.secret")
-	if err != nil {
-		http.Error(w, "Failed to get auth token", http.StatusInternalServerError)
+	authToken := os.Getenv("TOKEN")
+	if !spotify.IsAccessTokenValid(authToken) {
+		http.Error(w, "Authorization required", http.StatusUnauthorized)
 		return
 	}
 
@@ -341,7 +344,7 @@ func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	for _, id := range playlistIDS.PlaylistIDS {
 		wg.Add(1)
 		var playlistDataStore PlaylistDataStore
-		go processPlaylist(string(authToken), id, &wg, &playlistDataStore)
+		go processPlaylist(authToken, id, &wg, &playlistDataStore)
 	}
 
 	wg.Wait()
@@ -350,11 +353,20 @@ func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/login", loginHandler)
 	mux.HandleFunc("/callback", callbackHandler)
 	mux.HandleFunc("/process-playlist", processPlaylistHandler)
 	mux.HandleFunc("/user-playlists", getPlaylistHandler)
 	handler := cors.Default().Handler(mux)
-	log.Fatal(http.ListenAndServe(":8888", handler))
+	err := http.ListenAndServe(":"+port, handler)
+	if err != nil {
+		log.Fatalf("Failed to start server: %s", err)
+	}
+
 }

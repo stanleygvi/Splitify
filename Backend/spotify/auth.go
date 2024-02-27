@@ -5,36 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 )
 
-var clientID string
-var clientSecret string
+var clientID = os.Getenv("CLIENT_ID")
+var clientSecret = os.Getenv("CLIENT_SECRET")
 
 const (
 	tokenURL    = "https://accounts.spotify.com/api/token"
 	redirectURI = "http://localhost:8080/callback"
 )
 
-func init() {
-	clientIDBytes, err := os.ReadFile("spotify/CLIENT_ID.secret")
-	if err != nil {
-		log.Fatalf("Failed to read CLIENT_ID: %v", err)
-	}
-	clientID = string(clientIDBytes)
-
-	clientSecretBytes, err := os.ReadFile("spotify/CLIENT_SECRET.secret")
-	if err != nil {
-		log.Fatalf("Failed to read CLIENT_SECRET: %v", err)
-	}
-	clientSecret = string(clientSecretBytes)
-}
-
 func GetToken(code string) (string, error) {
+	if clientID == "" || clientSecret == "" {
+		return "", fmt.Errorf("client ID or client secret is not set")
+	}
+
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
@@ -63,42 +52,42 @@ func GetToken(code string) (string, error) {
 
 	return tokenData.AccessToken, nil
 }
+
 func IsAccessTokenValid(accessToken string) bool {
-
-	resp, err := http.Get("https://api.spotify.com/v1/me")
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://api.spotify.com/v1/me", nil)
 	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return false
+	}
 
+	// Set the Authorization header with the access token
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error making request:", err)
 		return false
 	}
 	defer resp.Body.Close()
+	// fmt.Println(resp)
 
-	if resp.StatusCode == 401 {
-
-		return false
-	}
-
-	return true
+	// If the status code is 401, the token is invalid or expired
+	return resp.StatusCode != 401
 }
+
 func RefreshAccessToken(refreshToken string) (string, error) {
-	endpoint := "https://accounts.spotify.com/api/token"
-
-	clientID, err := os.ReadFile("CLIENT_ID.secret")
-	if err != nil {
-		return "", err
+	if clientID == "" || clientSecret == "" {
+		return "", fmt.Errorf("client ID or client secret is not set")
 	}
 
-	clientSecret, err := os.ReadFile("CLIENT_SECRET.secret")
-	if err != nil {
-		return "", err
-	}
-
-	auth := base64.StdEncoding.EncodeToString([]byte(string(clientID) + ":" + string(clientSecret)))
+	auth := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
 
-	req, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +101,7 @@ func RefreshAccessToken(refreshToken string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Failed to refresh token: %s", resp.Status)
+		return "", fmt.Errorf("failed to refresh token: %s", resp.Status)
 	}
 
 	var result map[string]interface{}
@@ -120,7 +109,7 @@ func RefreshAccessToken(refreshToken string) (string, error) {
 
 	newToken, ok := result["access_token"].(string)
 	if !ok {
-		return "", fmt.Errorf("Token not found in response")
+		return "", fmt.Errorf("token not found in response")
 	}
 
 	return newToken, nil

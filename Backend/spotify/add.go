@@ -36,7 +36,7 @@ func Create_playlist(user_id string, auth string, name string, description strin
 	fmt.Println("Response Status:", resp.Status)
 
 	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("Failed to create playlist, status code: %s", resp.Status)
+		return "", fmt.Errorf("failed to create playlist, status code: %s", resp.Status)
 	}
 
 	var responseData map[string]interface{}
@@ -49,7 +49,7 @@ func Create_playlist(user_id string, auth string, name string, description strin
 	id, ok := responseData["id"].(string)
 	if !ok {
 		fmt.Println("Error extracting playlist ID from response")
-		return "", errors.New("Failed to extract playlist ID from response")
+		return "", errors.New("failed to extract playlist ID from response")
 	}
 
 	return id, nil

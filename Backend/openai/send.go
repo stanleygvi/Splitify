@@ -23,18 +23,32 @@ type Message struct {
 }
 
 func Send(num_groups string, songs string) string {
-	apiKeyBytes, err := os.ReadFile("openai/OPENAI_SECRET.secret")
-	if err != nil {
-		log.Fatalf("Failed to read API key: %v", err)
-	}
+	apiKeyBytes := os.Getenv("OPENAI_SECRET")
+
 	apiKey := string(apiKeyBytes)
 
 	instruction := map[string]interface{}{
-		"task":           fmt.Sprintf("Categorize the given songs into separate playlists based on their musical style and content, not just by artist. Make sure each playlist is unique from the others. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist. Don't include any unrelated data in the response. Use the json format below:"),
-		"requirements":   "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as it's provided id. There should be no duplicate songs. OUTPUT MUST BE IN JSON FORMAT. DO NOT TYPE ANYTHING OUTSIDE OF THE JSON.",
-		"num_playlists":  num_groups,
-		"example_output": "{playlists:[{'name': 'Example Name', 'description': 'Example Description', 'public': true, song_ids:[ 1, 47, 216]}]}",
-		"songs":          songs,
+		"task":            fmt.Sprintf("Categorize the given songs into %s playlists based on their musical style and content, not just by artist. Make sure each playlist is unique from the others. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist.", num_groups),
+		"requirements":    "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as its provided id. There should be no duplicate songs. OUTPUT MUST BE IN JSON FORMAT. DO NOT TYPE ANYTHING OUTSIDE OF THE JSON.",
+		"num_playlists":   num_groups,
+		"response_format": "JSON",
+		"example_output": `{
+			"playlists": [
+				{
+					"id": "playlist1ID",
+					"name": "Example Name",
+					"description": "Example Description",
+					"song_ids": [1, 47, 216]
+				},
+				{
+					"id": "playlist2ID",
+					"name": "Example Name 2",
+					"description": "Example Description 2",
+					"song_ids": [2, 48, 100, 5, 43, 99]
+				}
+			]
+		}`,
+		"songs": songs,
 	}
 
 	messageContent, err := json.Marshal(instruction)
@@ -51,7 +65,7 @@ func Send(num_groups string, songs string) string {
 	}
 
 	requestBody := map[string]interface{}{
-		"model":       "gpt-3.5-turbo-16k",
+		"model":       "gpt-4-1106-preview",
 		"messages":    []map[string]interface{}{{"role": "user", "content": message}},
 		"temperature": 0.6,
 	}
@@ -71,6 +85,7 @@ func Send(num_groups string, songs string) string {
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
+
 	if err != nil {
 		panic(err)
 	}
@@ -80,6 +95,7 @@ func Send(num_groups string, songs string) string {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("\n\nRESP:\n", responseBody)
 
 	var response Response
 	jsonErr := json.Unmarshal(responseBody, &response)
@@ -89,5 +105,5 @@ func Send(num_groups string, songs string) string {
 
 	content := response.Choices[0].Message.Content
 
-	return content
+	return string(content)
 }
