@@ -52,13 +52,6 @@ type PlaylistIDS struct {
 	PlaylistIDS []string `json:"playlistIds"`
 }
 
-// Helper functions
-func enableCORS(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-}
-
 func convertToString(index int, track Track) string {
 	var artists []string
 	for _, artist := range track.Artists {
@@ -258,10 +251,10 @@ func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, d
 	slices := calcSlices(length)
 
 	var wg_append sync.WaitGroup
-
+	startIndex := 0
 	for i := 0; i < slices && i < 5; i++ {
 		wg_append.Add(1)
-		startIndex := i * 100
+		startIndex = i * 100
 
 		go append_to_playlistData(startIndex, playlist_id, authToken, &wg_append, dataStore)
 	}
@@ -277,7 +270,7 @@ func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, d
 	gpt_resp := openai.Send("5", songs)
 	var gptPlaylists GPT_Playlists
 	// Find the start and end indices of the actual JSON content.
-	startIndex := strings.Index(gpt_resp, "{")
+	startIndex = strings.Index(gpt_resp, "{")
 	endIndex := strings.LastIndex(gpt_resp, "}") + 1 // +1 to include the closing brace.
 	// Extract the JSON content.
 	if startIndex != -1 && endIndex != -1 && endIndex > startIndex {

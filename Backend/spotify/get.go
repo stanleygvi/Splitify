@@ -11,15 +11,14 @@ type User struct {
 	ID string `json:"id"`
 }
 type PlaylistResponse struct {
-	Items []struct {
-		Track struct {
-			ID      string `json:"id"`
-			Name    string `json:"name"`
-			Artists []struct {
-				Name string `json:"name"`
-			} `json:"artists"`
-		} `json:"track"`
-	} `json:"items"`
+	Items []PlaylistItem `json:"items"`
+	Total int            `json:"total"`
+}
+
+type PlaylistItem struct {
+	Track struct {
+		ID string `json:"id"`
+	} `json:"track"`
 }
 
 type Image struct {
@@ -101,38 +100,43 @@ func Get_all_playlists(authToken string) AllPlaylists {
 
 }
 
-func Get_playlist_length(playlistID string, authToken string) int {
-	url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?offset=0&limit=100&fields=items(track(name,id,artists(name)))", playlistID)
+func Get_playlist_length(playlistID, authToken string) int {
+	totalTracks := 0
+	offset := 0
+	limit := 100 // Max limit as per Spotify API
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		fmt.Println("Error creating request:", err)
-		return -1
+	for {
+		url := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?offset=%d&limit=%d&fields=total,items(track(id))", playlistID, offset, limit)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			fmt.Printf("Error creating request: %v", err)
+			return -1
+		}
+
+		req.Header.Set("Authorization", "Bearer "+authToken)
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("Error sending request: %v", err)
+			return -1
+		}
+
+		var response PlaylistResponse
+		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+			fmt.Printf("Error decoding response: %v", err)
+			resp.Body.Close()
+			return -1
+		}
+		resp.Body.Close()
+
+		totalTracks += len(response.Items)
+		if totalTracks >= response.Total {
+			break
+		}
+		offset += limit
 	}
 
-	req.Header.Set("Authorization", "Bearer "+authToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error sending request:", err)
-		return -1
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-		return -1
-	}
-
-	var responseData PlaylistResponse
-	if err := json.Unmarshal(body, &responseData); err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
-		return -1
-	}
-
-	return len(responseData.Items)
+	return totalTracks
 }
 
 func Get_playlist_children(index int, playlistID string, authToken string) (string, error) {
