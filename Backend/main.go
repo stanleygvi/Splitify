@@ -72,7 +72,7 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 	defer wg.Done()
 
 	resp, err := spotify.Get_playlist_children(startIndex, id, authToken)
-	fmt.Println("CHILDREN:\n", resp)
+	// fmt.Println("CHILDREN:\n", resp)
 	if err != nil {
 		log.Println("Error fetching playlist children:", err.Error())
 		return
@@ -86,7 +86,7 @@ func append_to_playlistData(startIndex int, id, authToken string, wg *sync.WaitG
 		log.Println("Error unmarshalling playlist items:", err)
 		return
 	}
-	log.Println("\nPlayList Items:\n", playlistItems)
+	// log.Println("\nPlayList Items:\n", playlistItems)
 	dataStore.Items = append(dataStore.Items, playlistItems.Items...)
 	log.Printf("Appended %d items to playlistData from startIndex %d\n", len(playlistItems.Items), startIndex)
 }
@@ -125,8 +125,11 @@ const (
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// Attempt to retrieve the user's access token directly from the environment variable.
+
 	authToken := os.Getenv("TOKEN")
-	if !spotify.IsAccessTokenValid(authToken) {
+
+	if authToken == "" || !spotify.IsAccessTokenValid(authToken) {
+
 		// If the access token is not valid or doesn't exist, try to refresh it.
 		refreshToken := os.Getenv("REFRESH_TOKEN")
 		if refreshToken != "" {
@@ -219,6 +222,7 @@ func exchangeCodeForToken(code string) (string, error) {
 
 func getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	// Retrieve the access token directly from the environment variable.
+
 	authToken := os.Getenv("TOKEN")
 	// fmt.Println(authToken)
 	if !spotify.IsAccessTokenValid(authToken) {
@@ -239,60 +243,67 @@ func getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, dataStore *PlaylistDataStore) {
+func send_to_openai(songs string, slices int) string {
+
+	log.Println("sending to openai...")
+	gpt_resp := openai.Send(fmt.Sprint(slices), songs)
+	return gpt_resp
+}
+
+func processPlaylist(authToken string, playlist_id string, wg *sync.WaitGroup, dataStore *PlaylistDataStore, length int, index int) {
 	defer wg.Done()
-	length := spotify.Get_playlist_length(playlist_id, authToken)
-	fmt.Println(length)
-	if length == -1 {
-		log.Println("Error fetching playlist length for:", playlist_id)
-		return
-	}
 
 	slices := calcSlices(length)
-
+	log.Println("appending songs to playlistData object...")
 	var wg_append sync.WaitGroup
-	startIndex := 0
-	for i := 0; i < slices && i < 5; i++ {
-		wg_append.Add(1)
-		startIndex = i * 100
 
-		go append_to_playlistData(startIndex, playlist_id, authToken, &wg_append, dataStore)
+	for i := index; i < slices*100 && i < index+400; i += 100 {
+		wg_append.Add(1)
+
+		go append_to_playlistData(i, playlist_id, authToken, &wg_append, dataStore)
 	}
 
 	wg_append.Wait()
 	songs := ""
-
+	log.Println("converting to string...")
 	for index, obj := range dataStore.Items {
 		objStr := convertToString(index, obj.Track)
 		songs += objStr
 	}
 
-	gpt_resp := openai.Send("5", songs)
-	var gptPlaylists GPT_Playlists
-	// Find the start and end indices of the actual JSON content.
-	startIndex = strings.Index(gpt_resp, "{")
-	endIndex := strings.LastIndex(gpt_resp, "}") + 1 // +1 to include the closing brace.
-	// Extract the JSON content.
-	if startIndex != -1 && endIndex != -1 && endIndex > startIndex {
-		jsonContent := gpt_resp[startIndex:endIndex]
+	gpt_resp := ""
+	startIndex := strings.Index(gpt_resp, "{")
+	endIndex := strings.LastIndex(gpt_resp, "}") + 1
 
-		// Unmarshal the JSON content into the struct.
-		err := json.Unmarshal([]byte(jsonContent), &gptPlaylists)
-		if err != nil {
-			log.Printf("Error unmarshalling GPT response: %v", err)
-			return
-		}
+	for startIndex < 0 && endIndex < 1 {
+		gpt_resp = send_to_openai(songs, slices)
 
-	} else {
-		log.Println("Valid JSON content not found in the response")
+		startIndex = strings.Index(gpt_resp, "{")
+		endIndex = strings.LastIndex(gpt_resp, "}") + 1
+
 	}
-	log.Println("Finished unmarshalling: \n", gptPlaylists)
+
+	var gptPlaylists GPT_Playlists
+
+	jsonContent := gpt_resp[startIndex:endIndex]
+
+	// Unmarshal the JSON content into the struct.
+	err := json.Unmarshal([]byte(jsonContent), &gptPlaylists)
+	if err != nil {
+		log.Printf("Error unmarshalling GPT response: %v", err)
+		return
+	}
+
+	// log.Println("Finished unmarshalling: \n", gptPlaylists)
+	log.Println("adding track ids to playlist...")
 	addTrackIDsToPlaylist(&gptPlaylists, dataStore.Items)
 	// log.Println("added tracks to playlists:\n", res)
 	user_id := spotify.Get_user_id(string(authToken))
+	log.Println("creating playlists...")
 	for _, playlist := range gptPlaylists.Playlists {
+		log.Println("creating playlist", playlist.Name, "...")
 		playlist_id, err := spotify.Create_playlist(user_id, string(authToken), playlist.Name, playlist.Description)
-		log.Println("Playlist ID: ", playlist_id)
+		// log.Println("Playlist ID: ", playlist_id)
 		if err != nil {
 			log.Println("Error creating playlist")
 			return
@@ -335,14 +346,27 @@ func processPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 
 	var wg sync.WaitGroup
 	for _, id := range playlistIDS.PlaylistIDS {
-		wg.Add(1)
-		var playlistDataStore PlaylistDataStore
-		go processPlaylist(authToken, id, &wg, &playlistDataStore)
+
+		length := spotify.Get_playlist_length(id, authToken)
+		fmt.Println("length: ", length)
+		if length == -1 {
+			log.Println("Error fetching playlist length for:", id)
+			return
+		}
+		for i := 0; i < length; i += 400 {
+			wg.Add(1)
+			var playlistDataStore PlaylistDataStore
+
+			fmt.Printf("Handling Playlist %s starting at index %d\n", id, i)
+			go processPlaylist(authToken, id, &wg, &playlistDataStore, length, i)
+		}
+
 	}
 
 	wg.Wait()
 
 	w.Write([]byte("Playlists updated successfully!"))
+	log.Println("Finished creating playlists!")
 }
 
 func main() {

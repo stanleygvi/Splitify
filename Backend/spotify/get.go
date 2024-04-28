@@ -149,7 +149,7 @@ func Get_playlist_children(index int, playlistID string, authToken string) (stri
 	req.Header.Set("Authorization", "Bearer "+authToken)
 
 	resp, err := client.Do(req)
-	fmt.Println("CHILDREN: \n", resp)
+	// fmt.Println("CHILDREN: \n", resp)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
 		return "", err

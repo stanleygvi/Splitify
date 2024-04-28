@@ -28,8 +28,8 @@ func Send(num_groups string, songs string) string {
 	apiKey := string(apiKeyBytes)
 
 	instruction := map[string]interface{}{
-		"task":            fmt.Sprintf("Categorize the given songs into %s playlists based on their musical style and content, not just by artist. Make sure each playlist is unique from the others. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is added to a playlist.", num_groups),
-		"requirements":    "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as its provided id. There should be no duplicate songs. OUTPUT MUST BE IN JSON FORMAT. DO NOT TYPE ANYTHING OUTSIDE OF THE JSON.",
+		"task":            "Categorize the given songs into around 5 different playlists based on their musical style and content, not just by artist. Make sure each playlist is UNIQUE from the others. Provide a unique description and name for each playlist. REQUIRED: Make sure that every provided song is in a playlist.",
+		"requirements":    "Each song should be represented across these playlists. Each playlist should have a Description, Name, Public status (always true), and a list of ALL songs included in the playlist. Each song should be recorded as its provided id. Each playlist should have around the same amount of songs. There should be no duplicate songs. OUTPUT MUST BE IN JSON FORMAT. DO NOT TYPE ANYTHING OUTSIDE OF THE JSON.",
 		"num_playlists":   num_groups,
 		"response_format": "JSON",
 		"example_output": `{
@@ -95,7 +95,7 @@ func Send(num_groups string, songs string) string {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("\n\nRESP:\n", responseBody)
+	// fmt.Println("\n\nRESP:\n", responseBody)
 
 	var response Response
 	jsonErr := json.Unmarshal(responseBody, &response)

@@ -54,6 +54,7 @@ func GetToken(code string) (string, error) {
 }
 
 func IsAccessTokenValid(accessToken string) bool {
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", "https://api.spotify.com/v1/me", nil)
 	if err != nil {
