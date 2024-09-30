@@ -46,11 +46,13 @@ function PlaylistInputPage() {
         })
         .then(data => {
             console.log("Response from server:", data);
+            alert("Playlists processed successfully!");
         })
         .catch(error => {
             console.error("There was a problem with the fetch operation:", error);
         });
-    }
+    };
+    
 
     return (
         <div>
