@@ -20,7 +20,6 @@ def login_handler():
     
     if not auth_token or not is_access_token_valid(auth_token):
         refresh_token = os.getenv("REFRESH_TOKEN")
-        print(f"AUTH: {auth_token}\nREFRESH:{refresh_token}")
         if refresh_token:
             new_access_token = refresh_access_token(refresh_token)
             
