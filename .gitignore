@@ -1,1 +1,7 @@
 *.secret
+*.env
+*.txt
+*.secret
+*.env
+*.pyc
+*.DS_STORE

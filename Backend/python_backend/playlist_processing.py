@@ -4,7 +4,6 @@ from helpers import calc_slices
 from grouping import cluster_df
 import time
 
-
 def extract_ids(playlist_data):
     track_ids = []
     for track in playlist_data:
@@ -67,7 +66,6 @@ def process_single_playlist(auth_token, playlist_id, total_length):
 
 def created_and_populate(cluster_df, user_id, auth_token):
 
-    
     slices = calc_slices(len(cluster_df))
     if slices < 1:
         return
