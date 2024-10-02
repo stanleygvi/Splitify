@@ -2,7 +2,7 @@ from sklearn.cluster import KMeans
 import pandas as pd
 import json
 def calc_clusters():
-    return 8
+    return 3
 
 def scale_audio_features(dataframe:pd.DataFrame, keys:list[str], weights: list[float]):
     assert len(keys) == len(weights)
