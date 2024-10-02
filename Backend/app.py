@@ -41,7 +41,7 @@ def redirect_to_spotify_login():
         "client_id": client_id,
         "scope": scope,
         "show_dialog": "true",
-        "redirect_uri": "https://splitify-app-96607781f61f.herokuapp.com//callback",
+        "redirect_uri": "https://splitify-app-96607781f61f.herokuapp.com/callback",
         "state": state
     }
     
