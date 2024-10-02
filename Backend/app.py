@@ -1,14 +1,14 @@
 from flask import Flask, request, redirect, jsonify
 from flask_cors import CORS
 import os
-from spotify_api import (
+from Backend.spotify_api import (
     is_access_token_valid,
     refresh_access_token,
     get_all_playlists,
     exchange_code_for_token
 )
-from playlist_processing import process_playlists
-from helpers import generate_random_string
+from Backend.playlist_processing import process_playlists
+from Backend.helpers import generate_random_string
 
 app = Flask(__name__)
 

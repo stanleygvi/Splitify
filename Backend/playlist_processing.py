@@ -1,7 +1,7 @@
 from threading import Thread
-from spotify_api import get_playlist_length, get_playlist_children, create_playlist, add_songs, get_user_id, get_audio_features
-from helpers import calc_slices
-from grouping import cluster_df
+from Backend.spotify_api import get_playlist_length, get_playlist_children, create_playlist, add_songs, get_user_id, get_audio_features
+from Backend.helpers import calc_slices
+from Backend.grouping import cluster_df
 import time
 
 def extract_ids(playlist_data):
