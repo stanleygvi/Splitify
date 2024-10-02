@@ -1,5 +1,5 @@
 from threading import Thread
-from Backend.spotify_api import get_playlist_length, get_playlist_children, create_playlist, add_songs, get_user_id, get_audio_features
+from Backend.spotify_api import get_playlist_length, get_playlist_children, create_playlist, add_songs, get_user_id, get_audio_features, get_playlist_name
 from Backend.helpers import calc_slices
 from Backend.grouping import cluster_df
 import time
@@ -42,6 +42,7 @@ def process_playlists(auth_token, playlist_ids):
         thread.join()
 
 def process_single_playlist(auth_token, playlist_id, total_length):
+    name = get_playlist_name(playlist_id, auth_token)
     slices = calc_slices(total_length)
     playlist_data_store = {"id":playlist_id,"tracks": []}
 
@@ -57,19 +58,20 @@ def process_single_playlist(auth_token, playlist_id, total_length):
     threads = []
     for num in range(0,num_playlists):
         cluster = grouped[grouped["cluster"] == num]
-        thread = Thread(target=created_and_populate, args=(cluster, user_id, auth_token))
+        thread = Thread(target=created_and_populate, args=(cluster, user_id, auth_token, name))
         thread.start()
         threads.append(thread)
     for thread in threads:
         thread.join()
         time.sleep(1)
 
-def created_and_populate(cluster_df, user_id, auth_token):
+def created_and_populate(cluster_df, user_id, auth_token, name):
 
     slices = calc_slices(len(cluster_df))
     if slices < 1:
         return
-    playlist_id = create_playlist(user_id, auth_token, f"Cluster num ", "")
+    
+    playlist_id = create_playlist(user_id, auth_token, f"Split playlist from {name} ", "Made using Splitify: https://splitify-fac76.web.app/")
     for position in range(0, slices * 100, 100):
         if (position + 100) > len(cluster_df):
             cluster_slice = cluster_df.iloc[position:]

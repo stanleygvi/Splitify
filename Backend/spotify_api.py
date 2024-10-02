@@ -85,6 +85,13 @@ def get_playlist_length(playlist_id, auth_token):
         return response.get('total', 0)
     return -1
 
+def get_playlist_name(playlist_id, auth_token):
+    endpoint = f"/playlists/{playlist_id}"
+    response = spotify_request("GET", endpoint, auth_token)
+    if response:
+        return response.get("name", "")
+    return ""
+
 def get_playlist_children(start_index, playlist_id, auth_token):
     endpoint = f"/playlists/{playlist_id}/tracks"
     params = {
@@ -108,6 +115,7 @@ def create_playlist(user_id, auth_token, name, description):
     endpoint = f"/users/{user_id}/playlists"
     json_data = {
         "name": name,
+        "description": description,
         "public": True
     }
     response = spotify_request("POST", endpoint, auth_token, json_data=json_data)
