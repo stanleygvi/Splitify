@@ -1,6 +1,5 @@
 *.secret
 *.env
-*.txt
 *.secret
 *.env
 *.pyc

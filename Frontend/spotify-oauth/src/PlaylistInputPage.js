@@ -6,7 +6,7 @@ function PlaylistInputPage() {
     const [selectedPlaylists, setSelectedPlaylists] = useState([]);
 
     useEffect(() => {
-        fetch("http://localhost:8080/user-playlists")
+        fetch("https://splitify-app-96607781f61f.herokuapp.com/user-playlists")
         .then(response => response.json())
         .then(data => {
             if (data && data.items) {
@@ -31,7 +31,7 @@ function PlaylistInputPage() {
     const handleProcessPlaylists = () => {
         console.log("Selected Playlists:", selectedPlaylists);
         
-        fetch("http://localhost:8080/process-playlist", {
+        fetch("https://splitify-app-96607781f61f.herokuapp.com/process-playlist", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
