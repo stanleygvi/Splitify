@@ -73,7 +73,6 @@ def get_playlist_handler():
         return "Authorization required", 401
 
     playlists = get_all_playlists(auth_token)
-    
     if not playlists:
         return "Failed to get playlists", 500
 

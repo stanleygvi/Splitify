@@ -95,11 +95,19 @@ def get_playlist_children(start_index, playlist_id, auth_token):
     response = spotify_request("GET", endpoint, auth_token, params=params)
     return response
 
+def get_audio_features(track_ids:list[str], auth_token)->list[dict[str,float]]:
+    endpoint = "/audio-features"
+    params = {
+        "ids": ",".join(track_ids)
+    }
+    response = spotify_request("GET", endpoint, auth_token, params=params)
+    assert response
+    return response['audio_features']
+
 def create_playlist(user_id, auth_token, name, description):
     endpoint = f"/users/{user_id}/playlists"
     json_data = {
         "name": name,
-        "description": f"{description} - created using the app",
         "public": True
     }
     response = spotify_request("POST", endpoint, auth_token, json_data=json_data)

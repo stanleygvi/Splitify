@@ -1,6 +1,31 @@
 from threading import Thread
-from spotify_api import get_playlist_length, get_playlist_children, create_playlist, add_songs, get_user_id
-from helpers import calc_slices, convert_to_string
+from spotify_api import get_playlist_length, get_playlist_children, create_playlist, add_songs, get_user_id, get_audio_features
+from helpers import calc_slices
+from grouping import cluster_df
+import time
+
+
+def extract_ids(playlist_data):
+    track_ids = []
+    for track in playlist_data:
+        if track["track"] and track["track"]["id"]:
+            track_ids.append(track["track"]["id"])
+    return track_ids
+
+def clean_audio_features(audio_features:list[dict[str,float] ],remove_keys:list[str]):
+    index = 0
+    index_remove = []
+    for feature in audio_features:
+        if feature:
+            for key in remove_keys:
+                feature.pop(key, None)
+        else:
+            index_remove.append(index)
+        index+=1
+    for i in index_remove:
+        audio_features.pop(i)
+
+
 
 def process_playlists(auth_token, playlist_ids):
     threads = []
@@ -10,39 +35,62 @@ def process_playlists(auth_token, playlist_ids):
             print(f"Error fetching playlist length for {playlist_id}")
             continue
 
-        for i in range(0, length, 400):
-            thread = Thread(target=process_single_playlist, args=(auth_token, playlist_id, length, i))
-            thread.start()
-            threads.append(thread)
+        thread = Thread(target=process_single_playlist, args=(auth_token, playlist_id, length))
+        thread.start()
+        threads.append(thread)
 
     for thread in threads:
         thread.join()
 
-def process_single_playlist(auth_token, playlist_id, total_length, start_index):
+def process_single_playlist(auth_token, playlist_id, total_length):
     slices = calc_slices(total_length)
-    playlist_data_store = {'items': []}
+    playlist_data_store = {"id":playlist_id,"tracks": []}
 
-    for i in range(start_index, slices * 100, 100):
+    for i in range(0, slices * 100, 100):
         append_to_playlist_data(i, playlist_id, auth_token, playlist_data_store)
-
+    if len(playlist_data_store["tracks"]) < 1:
+        print(f"failed to process playlist: {playlist_id}")
+        return
     user_id = get_user_id(auth_token)
+    grouped = cluster_df(playlist_data_store)
+    num_playlists = len(grouped["cluster"].value_counts())
+
+    threads = []
+    for num in range(0,num_playlists):
+        cluster = grouped[grouped["cluster"] == num]
+        thread = Thread(target=created_and_populate, args=(cluster, user_id, auth_token))
+        thread.start()
+        threads.append(thread)
+    for thread in threads:
+        thread.join()
+        time.sleep(1)
+
+def created_and_populate(cluster_df, user_id, auth_token):
+
+    
+    slices = calc_slices(len(cluster_df))
+    if slices < 1:
+        return
+    playlist_id = create_playlist(user_id, auth_token, f"Cluster num ", "")
+    for position in range(0, slices * 100, 100):
+        if (position + 100) > len(cluster_df):
+            cluster_slice = cluster_df.iloc[position:]
+        else:
+            cluster_slice = cluster_df.iloc[position:position+100]
+        track_uris = cluster_slice["uri"].tolist()
+
+        
+        add_songs(playlist_id, track_uris, auth_token, position)
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
     response = get_playlist_children(start_index, playlist_id, auth_token)
-    if response and 'items' in response:
-        data_store['items'].extend(response['items'])
-        print(f"Appended {len(response['items'])} items from playlist starting at index {start_index}")
+    if response and "items" in response:
+        
+        track_ids = extract_ids(response["items"])
+        audio_features = get_audio_features(track_ids, auth_token)
+        clean_audio_features(audio_features, ["type", "id", "track_href", "analysis_url", "duration_ms"])
+        data_store["tracks"].extend(audio_features)
+        print(f"Appended {len(response["items"])} tracks from playlist starting at index {start_index}")
     else:
         print(f"Failed to append playlist data from index {start_index}")
 
-def add_track_ids_to_playlist(gpt_playlists, playlist_items):
-    for playlist in gpt_playlists['playlists']:
-        track_uris = []
-        for index in playlist['song_ids']:
-            if index >= len(playlist_items):
-                print(f"Index out of range: {index} for playlist items of length {len(playlist_items)}")
-                continue
-            track_id = playlist_items[index]['track']['id']
-            if track_id:
-                track_uris.append(f"spotify:track:{track_id}")
-        playlist['track_ids'] = ','.join(track_uris)
