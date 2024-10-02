@@ -5,7 +5,7 @@ import './LoginPage.css';  // Optional: if you want to have separate styles for 
 function LoginPage() {
     const initiateLogin = () => {
         // Redirect the user to the server's /login endpoint to start the OAuth process.
-        window.location.href = "http://localhost:8080/login";
+        window.location.href = "http://splitifytool.com/login";
 
     };
 
