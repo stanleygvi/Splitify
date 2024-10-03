@@ -12,7 +12,7 @@ from Backend.helpers import generate_random_string
 
 app = Flask(__name__)
 
-CORS(app, origins=["https://splitifytool.com/"])
+CORS(app, origins=["https://splitifytool.com"])
 
 @app.route("/login")
 def login_handler():
