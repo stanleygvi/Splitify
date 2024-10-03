@@ -29,7 +29,7 @@ def login_handler():
         else:
             return redirect_to_spotify_login()
     
-    return redirect("https://splitifytool.com/input-playlist")
+    return redirect_to_spotify_login()
 
 def redirect_to_spotify_login():
     client_id = os.getenv("CLIENT_ID")
