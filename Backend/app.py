@@ -1,7 +1,7 @@
 from flask import Flask, request, redirect, jsonify, session
 from datetime import timedelta
 from flask_cors import CORS
-from flask_session import redis
+import redis
 import os
 from Backend.spotify_api import (
     is_access_token_valid,
