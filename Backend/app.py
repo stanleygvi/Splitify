@@ -92,8 +92,6 @@ def callback_handler():
 @app.route("/user-playlists")
 def get_playlist_handler():
     auth_token = session.get("TOKEN")
-    print(f"Access Token: {session.get('TOKEN')}")
-    print(f"Refresh Token: {session.get('REFRESH_TOKEN')}")
     if not auth_token or not is_access_token_valid(auth_token):
         refresh_token = session.get("REFRESH_TOKEN")
         
