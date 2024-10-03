@@ -15,15 +15,11 @@ from flask import url_for
 from flask_session import Session
 
 app = Flask(__name__)
-CORS(app, origins=["https://splitifytool.com"])
+CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login", "https://splitifytool.com/input-playlist"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1) # Life of auth token for spotify
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config["SESSION_COOKIE_SECURE"] = True
-app.config["SESSION_COOKIE_HTTPONLY"] = True
 Session(app)
 
 
@@ -31,14 +27,6 @@ Session(app)
 def before_request():
     if not request.is_secure and os.getenv("FLASK_ENV") == "production":
         return redirect(request.url.replace("http://", "https://"))
-@app.after_request
-def apply_cors(response):
-    response.headers["Access-Control-Allow-Origin"] = "https://splitifytool.com"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, public, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
 
 @app.route("/login")
 def login_handler():
