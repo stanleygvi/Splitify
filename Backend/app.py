@@ -1,4 +1,5 @@
 from flask import Flask, request, redirect, jsonify, session
+from redis import Redis
 from flask_cors import CORS
 import os
 from Backend.spotify_api import (
@@ -16,7 +17,10 @@ app = Flask(__name__)
 CORS(app, origins=["https://splitifytool.com"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "supersecretkey")
-app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_TYPE"] = "redis"
+redis_url = os.getenv("REDIS_URL")
+assert redis_url
+app.config["SESSION_REDIS"] = Redis.from_url(redis_url)
 Session(app)
 
 @app.route("/login")
@@ -70,15 +74,13 @@ def callback_handler():
     session["TOKEN"] = token_data.get("access_token")
     session["REFRESH_TOKEN"] = token_data.get("refresh_token")
 
-    print(f"Access Token Set: {session.get('TOKEN')}")
-    print(f"Refresh Token Set: {session.get('REFRESH_TOKEN')}")
-
     return redirect("https://splitifytool.com/input-playlist")
 
 @app.route("/user-playlists")
 def get_playlist_handler():
     auth_token = session.get("TOKEN")
-    
+    print(f"Access Token: {session.get('TOKEN')}")
+    print(f"Refresh Token: {session.get('REFRESH_TOKEN')}")
     if not auth_token or not is_access_token_valid(auth_token):
         refresh_token = session.get("REFRESH_TOKEN")
         
