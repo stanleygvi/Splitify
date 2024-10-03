@@ -17,7 +17,7 @@ from flask_session import Session
 app = Flask(__name__)
 CORS(app, origins=["https://splitifytool.com"])
 
-app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "supersecretkey")
+app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1) # Life of auth token for spotify
