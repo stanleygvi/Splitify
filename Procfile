@@ -1,1 +1,1 @@
-gunicorn --workers 3 --worker-class sync --preload Backend.app:app
+web: gunicorn Backend.app:app
