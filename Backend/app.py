@@ -35,9 +35,9 @@ def before_request():
 def apply_cors(response):
     response.headers["Access-Control-Allow-Origin"] = "https://splitifytool.com"
     response.headers["Access-Control-Allow-Credentials"] = "true"
-    # response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, public, max-age=0"
-    # response.headers["Pragma"] = "no-cache"
-    # response.headers["Expires"] = "0"
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, public, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     return response
 
 @app.route("/login")
