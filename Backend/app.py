@@ -33,6 +33,7 @@ def login_handler():
         
         if new_access_token:
             session["TOKEN"] = new_access_token
+            print(f"Login:\nToken:{session.get("TOKEN")}")
             return redirect("https://splitifytool.com/input-playlist")
     
     return redirect_to_spotify_login()
@@ -74,6 +75,7 @@ def callback_handler():
 @app.route("/user-playlists")
 def get_playlist_handler():
     auth_token = session.get("TOKEN")
+    print(f"Playlist:\nToken:{session.get("TOKEN")}")
     
     if not auth_token or not is_access_token_valid(auth_token):
         refresh_token = session.get("REFRESH_TOKEN")
