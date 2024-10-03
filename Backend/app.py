@@ -1,6 +1,7 @@
 from flask import Flask, request, redirect, jsonify, session
 from datetime import timedelta
 from flask_cors import CORS
+from flask_session import redis
 import os
 from Backend.spotify_api import (
     is_access_token_valid,
@@ -18,6 +19,7 @@ CORS(app, supports_credentials=True, origins=["https://splitifytool.com"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "supersecretkey")
 app.config["SESSION_TYPE"] = "redis"
+app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1) # Life of auth token for spotify
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config["SESSION_COOKIE_SECURE"] = True
