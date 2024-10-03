@@ -109,6 +109,7 @@ def process_playlist_handler():
     if not auth_token or not is_access_token_valid(auth_token):
         return "Authorization required", 401
 
+    assert request.json
     playlist_ids = request.json.get("playlistIds", [])
     
     if not playlist_ids:
@@ -120,4 +121,5 @@ def process_playlist_handler():
 
 if __name__ == "__main__":
     port = os.getenv("PORT", "8080")
+    assert type(port) == int
     app.run(host="0.0.0.0", port=port)
