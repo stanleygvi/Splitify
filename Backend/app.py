@@ -1,8 +1,5 @@
 from flask import Flask, request, redirect, jsonify, session
-from redis import Redis
 from datetime import timedelta
-
-from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
 import os
 from Backend.spotify_api import (
@@ -17,17 +14,16 @@ from flask import url_for
 from flask_session import Session
 
 app = Flask(__name__)
-CORS(app, origins=["https://splitifytool.com"])
+CORS(app, supports_credentials=True, origins=["https://splitifytool.com"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "supersecretkey")
 app.config["SESSION_TYPE"] = "redis"
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=2)
-redis_url = os.getenv("REDIS_URL")
-assert redis_url
-app.config["SESSION_REDIS"] = Redis.from_url(redis_url)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1) # Life of auth token for spotify
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_HTTPONLY"] = True
 
 app.config["SESSION_COOKIE_SECURE"] = True
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 Session(app)
 
 
@@ -35,6 +31,11 @@ Session(app)
 def before_request():
     if not request.is_secure and os.getenv("FLASK_ENV") == "production":
         return redirect(request.url.replace("http://", "https://"))
+@app.after_request
+def apply_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "https://splitifytool.com"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 @app.route("/login")
 def login_handler():

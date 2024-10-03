@@ -6,7 +6,9 @@ function PlaylistInputPage() {
     const [selectedPlaylists, setSelectedPlaylists] = useState([]);
 
     useEffect(() => {
-        fetch("https://splitify-app-96607781f61f.herokuapp.com/user-playlists")
+        fetch("https://splitify-app-96607781f61f.herokuapp.com/user-playlists",
+            {credentials: 'include'}
+        )
         .then(response => response.json())
         .then(data => {
             if (data && data.items) {
