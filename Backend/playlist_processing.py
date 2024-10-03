@@ -71,7 +71,7 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
     if slices < 1:
         return
     
-    playlist_id = create_playlist(user_id, auth_token, f"Split playlist from {name} ", "Made using Splitify: https://splitify-fac76.web.app/")
+    playlist_id = create_playlist(user_id, auth_token, f"Split playlist from {name} ", "Made using Splitify: https://splitifytool.com/")
     for position in range(0, slices * 100, 100):
         if (position + 100) > len(cluster_df):
             cluster_slice = cluster_df.iloc[position:]

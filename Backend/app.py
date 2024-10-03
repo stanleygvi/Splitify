@@ -12,7 +12,7 @@ from Backend.helpers import generate_random_string
 
 app = Flask(__name__)
 
-CORS(app, origins=["https://splitify-fac76.web.app"])
+CORS(app, origins=["https://splitifytool.com/"])
 
 @app.route("/login")
 def login_handler():
@@ -29,7 +29,7 @@ def login_handler():
         else:
             return redirect_to_spotify_login()
     
-    return redirect("https://splitify-fac76.web.app/input-playlist")
+    return redirect("https://splitifytool.com/input-playlist")
 
 def redirect_to_spotify_login():
     client_id = os.getenv("CLIENT_ID")
@@ -63,7 +63,7 @@ def callback_handler():
     os.environ["TOKEN"] = token_data.get("access_token")
     os.environ["REFRESH_TOKEN"] = token_data.get("refresh_token")
 
-    return redirect("https://splitify-fac76.web.app/input-playlist")
+    return redirect("https://splitifytool.com/input-playlist")
 
 @app.route("/user-playlists")
 def get_playlist_handler():
