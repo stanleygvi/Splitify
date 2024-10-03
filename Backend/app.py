@@ -21,6 +21,10 @@ app.config["SESSION_TYPE"] = "redis"
 redis_url = os.getenv("REDIS_URL")
 assert redis_url
 app.config["SESSION_REDIS"] = Redis.from_url(redis_url)
+
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
 Session(app)
 
 @app.route("/login")
