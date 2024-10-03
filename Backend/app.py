@@ -1,6 +1,6 @@
 from flask import Flask, request, redirect, jsonify, session
 from flask_cors import CORS
-import os, logging
+import os
 from Backend.spotify_api import (
     is_access_token_valid,
     refresh_access_token,
@@ -70,8 +70,8 @@ def callback_handler():
     session["TOKEN"] = token_data.get("access_token")
     session["REFRESH_TOKEN"] = token_data.get("refresh_token")
 
-    logging.debug(f"Access Token Set: {session.get('TOKEN')}")
-    logging.debug(f"Refresh Token Set: {session.get('REFRESH_TOKEN')}")
+    print(f"Access Token Set: {session.get('TOKEN')}")
+    print(f"Refresh Token Set: {session.get('REFRESH_TOKEN')}")
 
     return redirect("https://splitifytool.com/input-playlist")
 
