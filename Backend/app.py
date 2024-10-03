@@ -15,7 +15,7 @@ from flask import url_for
 from flask_session import Session
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=["https://splitifytool.com"])
+CORS(app, origins=["https://splitifytool.com"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "supersecretkey")
 app.config["SESSION_TYPE"] = "redis"
@@ -24,8 +24,6 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1) # Life of auth tok
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-
-app.config["SESSION_COOKIE_SECURE"] = True
 Session(app)
 
 
