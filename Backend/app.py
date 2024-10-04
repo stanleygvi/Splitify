@@ -17,8 +17,10 @@ app = Flask(__name__)
 CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login", "https://splitifytool.com/input-playlist"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
-app.config["SESSION_TYPE"] = "redis"
-app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
+# app.config["SESSION_TYPE"] = "redis"
+# app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_TYPE"] = "filesystem"
 sess = Session()
 sess.init_app(app)
 
