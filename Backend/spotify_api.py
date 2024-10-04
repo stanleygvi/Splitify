@@ -22,7 +22,7 @@ def is_access_token_valid(auth_token):
     response = spotify_request("GET", "/me", auth_token)
     return response is not None
 
-def refresh_access_token(refresh_token):
+def refresh_access_token(refresh_token) -> str:
     client_id = os.getenv('CLIENT_ID')
     client_secret = os.getenv('CLIENT_SECRET')
     url = "https://accounts.spotify.com/api/token"
@@ -37,7 +37,7 @@ def refresh_access_token(refresh_token):
     response = requests.post(url, data=data, headers=headers)
     if response.status_code != 200:
         print(f"Error refreshing access token: {response.status_code}, {response.text}")
-        return None
+        return ""
 
     token_data = response.json()
     return token_data.get('access_token')

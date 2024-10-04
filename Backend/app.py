@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify, session
+from flask import Flask, request, redirect, jsonify, url_for
 from datetime import timedelta
 from flask_cors import CORS
 import redis
@@ -11,7 +11,6 @@ from Backend.spotify_api import (
 )
 from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
-from flask import url_for
 from flask_session import Session
 
 app = Flask(__name__)
@@ -20,14 +19,8 @@ CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login",
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
-print(redis.from_url(os.getenv("REDIS_URL")))
-Session(app)
-
-
-@app.before_request
-def before_request():
-    if not request.is_secure and os.getenv("FLASK_ENV") == "production":
-        return redirect(request.url.replace("http://", "https://"))
+session = Session()
+session.init_app(app)
 
 @app.route("/login")
 def login_handler():
@@ -42,7 +35,7 @@ def login_handler():
         new_access_token = refresh_access_token(refresh_token)
         
         if new_access_token:
-            session["TOKEN"] = new_access_token
+            session.set("TOKEN") = new_access_token
 
             return redirect("https://splitifytool.com/input-playlist")
     
@@ -77,8 +70,8 @@ def callback_handler():
     if not token_data:
         return "Error exchanging code for token", 500
 
-    session["TOKEN"] = token_data.get("access_token")
-    session["REFRESH_TOKEN"] = token_data.get("refresh_token")
+    session.set("TOKEN") = token_data.get("access_token")
+    session.set("REFRESH_TOKEN") = token_data.get("refresh_token")
 
     return redirect("https://splitifytool.com/input-playlist")
 
@@ -92,7 +85,7 @@ def get_playlist_handler():
             new_access_token = refresh_access_token(refresh_token)
             
             if new_access_token:
-                session["TOKEN"] = new_access_token
+                session.set("TOKEN") = new_access_token
                 auth_token = new_access_token
             else:
                 return {"Code": 401, "Error": "Failed to refresh access token"}
