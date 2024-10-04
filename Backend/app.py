@@ -25,7 +25,10 @@ sess.init_app(app)
 @app.route("/login")
 def login_handler():
     auth_token = session.get("TOKEN")
-    
+    if (auth_token):
+        print("\n\nTOKEN IN SESSION\n\n")
+    else:
+        print("\n\nNO TOKEN\n\n")
     if auth_token and is_access_token_valid(auth_token):
         return redirect("https://splitifytool.com/input-playlist")
     
