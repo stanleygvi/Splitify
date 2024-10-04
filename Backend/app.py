@@ -25,7 +25,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
 redis_url = os.getenv("REDIS_URL")
 app.config["SESSION_REDIS"] = redis.from_url(redis_url)
-Session(app)
+sess = Session()
+sess.init_app(app)
+
 
 db = redis.from_url(redis_url)
 
