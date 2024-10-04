@@ -36,6 +36,7 @@ def login_handler():
     user_id = session.get("user_id")
 
     if user_id:
+        print(f"YES USER ID: {user_id}")
         auth_token = db.get(f"{user_id}_TOKEN")
         if auth_token and is_access_token_valid(auth_token):
             return redirect("https://splitifytool.com/input-playlist")
@@ -49,7 +50,7 @@ def login_handler():
                 db.set(f"{user_id}_TOKEN", new_access_token)
 
                 return redirect("https://splitifytool.com/input-playlist")
-    
+    print("NO USER ID")
     return redirect_to_spotify_login()
 
 def redirect_to_spotify_login():
