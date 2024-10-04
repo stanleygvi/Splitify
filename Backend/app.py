@@ -15,7 +15,7 @@ from Backend.helpers import generate_random_string
 from flask_session import Session
 
 app = Flask(__name__)
-CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login", "https://splitifytool.com/input-playlist"])
+CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login", "https://splitifytool.com/input-playlist"], supports_credentials=True)
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config['SESSION_TYPE'] = 'redis'
