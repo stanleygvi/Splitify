@@ -80,7 +80,7 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
         
         status = add_songs(playlist_id, track_uris, auth_token, position)
         time.sleep(0.5)
-        if status.get("Error",None):
+        if not status or status.get("Error",None):
             print(f"Append Error: Playlist{name} split, status {status} starting from index: {position}")
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
