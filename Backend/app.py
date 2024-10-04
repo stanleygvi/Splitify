@@ -1,4 +1,5 @@
-from flask import Flask, request, redirect, jsonify, url_for, make_response
+from flask import Flask, request, redirect, jsonify, url_for, make_response, session
+from flask_session import Session
 from datetime import timedelta
 from flask_cors import CORS
 import redis
@@ -15,45 +16,47 @@ from Backend.helpers import generate_random_string
 
 app = Flask(__name__)
 
-# Configuration
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+app.config["SESSION_TYPE"] = "redis"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_USE_SIGNER"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
+
+redis_url = os.getenv("REDIS_URL")
+app.config["SESSION_REDIS"] = redis.from_url(redis_url)
+
 app.config["SESSION_COOKIE_DOMAIN"] = ".splitifytool.com"
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 
-# Redis connection for token storage
+redis_url = os.getenv("REDIS_URL")
+sess = Session()
+sess.init_app(app)
+
+CORS(app, origins=["https://splitifytool.com"], supports_credentials=True)
+
 redis_url = os.getenv("REDIS_URL")
 db = redis.from_url(redis_url)
-
-# CORS settings: allow cross-origin requests from frontend and include credentials (cookies)
-CORS(app, origins=["https://splitifytool.com"], supports_credentials=True)
 
 
 @app.route("/login")
 def login_handler():
-    # Retrieve user ID from session or Redis
     uid = session.get("uid")
     if uid:
         auth_token = db.get(f"{uid}_TOKEN")
         refresh_token = db.get(f"{uid}_REFRESH_TOKEN")
-
-        # Check if access token is valid, refresh if necessary
         if not is_access_token_valid(auth_token):
             if refresh_token:
                 new_auth_token = refresh_access_token(refresh_token)
                 db.set(f"{uid}_TOKEN", new_auth_token)
-                auth_token = new_auth_token  # Update with the new token
             else:
                 return redirect_to_spotify_login()
 
-        # Set the auth_token as HttpOnly, Secure cookie
         response = make_response(redirect("https://splitifytool.com/input-playlist"))
         response.set_cookie(
             "auth_token", auth_token, httponly=True, secure=True, samesite="None"
         )
         return response
-
-    # If no session uid, redirect to Spotify login
     return redirect_to_spotify_login()
 
 
@@ -92,11 +95,9 @@ def callback_handler():
     auth_token = token_data.get("access_token")
     user_id = get_user_id(auth_token)
 
-    # Store the user's access and refresh tokens in Redis
     db.set(f"{user_id}_TOKEN", auth_token)
     db.set(f"{user_id}_REFRESH_TOKEN", token_data.get("refresh_token"))
 
-    # Set the auth_token in an HttpOnly, Secure cookie
     response = make_response(redirect("https://splitifytool.com/input-playlist"))
     response.set_cookie(
         "auth_token", auth_token, httponly=True, secure=True, samesite="None"
@@ -107,10 +108,10 @@ def callback_handler():
 
 @app.route("/user-playlists")
 def get_playlist_handler():
-    # Retrieve the auth_token from HttpOnly cookie
     auth_token = request.cookies.get("auth_token")
 
     if not auth_token:
+        print(f"NO AUTH: {auth_token}")
         return {"Code": 401, "Error": "Authorization token required"}
 
     playlists = get_all_playlists(auth_token)
@@ -123,27 +124,17 @@ def get_playlist_handler():
 
 @app.route("/process-playlist", methods=["POST"])
 def process_playlist_handler():
-    # Retrieve the auth_token from HttpOnly cookie
+
     auth_token = request.cookies.get("auth_token")
 
     if not auth_token or not is_access_token_valid(auth_token):
-        # Refresh the token if it's expired
-        refresh_token = db.get(f"{user_id}_REFRESH_TOKEN")
-        if refresh_token:
-            new_auth_token = refresh_access_token(refresh_token)
-            db.set(f"{user_id}_TOKEN", new_auth_token)
-            auth_token = new_auth_token
-        else:
-            return "Authorization required", 401
+        return "Authorization required", 401
 
-    # Ensure the request contains playlist IDs
     assert request.json
     playlist_ids = request.json.get("playlistIds", [])
 
     if not playlist_ids:
         return "No playlist IDs provided", 400
-
-    # Process the playlists
     process_playlists(auth_token, playlist_ids)
 
     return jsonify({"message": "Playlists processed successfully!"}), 200
