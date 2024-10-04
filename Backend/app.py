@@ -1,4 +1,5 @@
-from flask import Flask, request, redirect, jsonify, url_for, make_response
+from flask import Flask, request, redirect, jsonify, url_for, make_response, session
+from flask_session import Session
 from datetime import timedelta
 from flask_cors import CORS
 import redis
@@ -15,6 +16,23 @@ from Backend.helpers import generate_random_string
 
 app = Flask(__name__)
 
+app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+
+redis_url = os.getenv("REDIS_URL")
+app.config["SESSION_REDIS"] = redis.from_url(redis_url)
+
+app.config['SESSION_COOKIE_DOMAIN'] = '.splitifytool.com'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+
+redis_url = os.getenv("REDIS_URL")
+sess = Session()
+sess.init_app(app)
+
 CORS(app, origins=["https://splitifytool.com"], supports_credentials=True)
 
 redis_url = os.getenv("REDIS_URL")
@@ -22,6 +40,26 @@ db = redis.from_url(redis_url)
 
 @app.route("/login")
 def login_handler():
+    uid = session.get("uid")
+    if uid:
+        auth_token = db.get(f"{uid}_TOKEN")
+        refresh_token = db.get(f"{uid}_REFRESH_TOKEN")
+        if not is_access_token_valid(auth_token):
+            if refresh_token:
+                new_auth_token = refresh_access_token(refresh_token)
+                db.set(f"{uid}_TOKEN", new_auth_token)
+            else:
+                return redirect_to_spotify_login()
+        
+        response = make_response(redirect("https://splitifytool.com/input-playlist"))
+        response.set_cookie(
+            "auth_token", 
+            auth_token, 
+            httponly=True,
+            secure=True,
+            samesite='None'
+        )
+        return response
     return redirect_to_spotify_login()
 
 def redirect_to_spotify_login():
