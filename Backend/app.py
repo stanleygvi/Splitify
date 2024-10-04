@@ -23,6 +23,9 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
+redis_url = os.getenv("REDIS_URL")
+app.config["SESSION_REDIS"] = redis.from_url(redis_url)
+
 app.config['SESSION_COOKIE_DOMAIN'] = '.splitifytool.com'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
@@ -30,6 +33,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 redis_url = os.getenv("REDIS_URL")
 sess = Session()
 sess.init_app(app)
+
 
 db = redis.from_url(redis_url)
 
