@@ -4,7 +4,7 @@ import os
 
 SPOTIFY_API_URL = "https://api.spotify.com/v1"
 
-def spotify_request(method, endpoint, auth_token, params=None, data=None, json_data=None):
+def spotify_request(method, endpoint, auth_token, params=None, data=None, json_data=None) -> dict:
     url = f"{SPOTIFY_API_URL}{endpoint}"
     headers = {
         "Authorization": f"Bearer {auth_token}",
@@ -15,12 +15,12 @@ def spotify_request(method, endpoint, auth_token, params=None, data=None, json_d
     
     if response.status_code >= 400:
         print(f"Spotify API request error: {response.status_code}, {response.text}")
-        return None
+        return {}
     return response.json()
 
-def is_access_token_valid(auth_token):
+def is_access_token_valid(auth_token)->dict:
     response = spotify_request("GET", "/me", auth_token)
-    return response is not None
+    return response
 
 def refresh_access_token(refresh_token) -> str:
     client_id = os.getenv('CLIENT_ID')

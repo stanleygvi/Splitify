@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify, url_for
+from flask import Flask, request, redirect, jsonify, url_for, session
 from datetime import timedelta
 from flask_cors import CORS
 import redis
@@ -17,27 +17,37 @@ app = Flask(__name__)
 CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login", "https://splitifytool.com/input-playlist"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
-db = redis.from_url(os.getenv("REDIS_URL"))
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+
+# Initialize Redis session
+redis_url = os.getenv("REDIS_URL")
+app.config["SESSION_REDIS"] = redis.from_url(redis_url)
+Session(app)
+
+db = redis.from_url(redis_url)
 
 @app.route("/login")
 def login_handler():
-    auth_token = db.get("TOKEN")
-    if (auth_token):
-        print("\n\nTOKEN IN SESSION\n\n")
-    else:
-        print("\n\nNO TOKEN\n\n")
-    if auth_token and is_access_token_valid(auth_token):
-        return redirect("https://splitifytool.com/input-playlist")
+    # Check if the user is logged in by looking at their session ID
+    user_id = session.get("user_id")
     
-    refresh_token = db.get("REFRESH_TOKEN")
-    
-    if refresh_token:
-        new_access_token = refresh_access_token(refresh_token)
-        
-        if new_access_token:
-            db.set("TOKEN", new_access_token)
-
+    if user_id:
+        auth_token = db.get(f"{user_id}_TOKEN")
+        if auth_token and is_access_token_valid(auth_token):
             return redirect("https://splitifytool.com/input-playlist")
+        
+        refresh_token = db.get(f"{user_id}_REFRESH_TOKEN")
+        
+        if refresh_token:
+            new_access_token = refresh_access_token(refresh_token)
+            
+            if new_access_token:
+                db.set(f"{user_id}_TOKEN", new_access_token)
+
+                return redirect("https://splitifytool.com/input-playlist")
     
     return redirect_to_spotify_login()
 
@@ -70,26 +80,33 @@ def callback_handler():
     if not token_data:
         return "Error exchanging code for token", 500
 
-    db.set("TOKEN", token_data.get("access_token"))
-    db.set("REFRESH_TOKEN",token_data.get("refresh_token"))
+    # Get the Spotify user ID and store it in the session
+    authToken = token_data.get("access_token")
+    user_id = is_access_token_valid(authToken).get("id","")
+    user_id = token_data.get("user_id")
+    session["user_id"] = user_id
+
+    db.set(f"{user_id}_TOKEN", authToken)
+    db.set(f"{user_id}_REFRESH_TOKEN", token_data.get("refresh_token"))
 
     return redirect("https://splitifytool.com/input-playlist")
 
 @app.route("/user-playlists")
 def get_playlist_handler():
-    auth_token = db.get("TOKEN")
-    if (auth_token):
-        print("\n\nTOKEN IN SESSION\n\n")
-    else:
-        print("\n\nNO TOKEN\n\n")
+    user_id = session.get("user_id")
+    
+    if not user_id:
+        return {"Code": 401, "Error": "User not authenticated"}, 401
+
+    auth_token = db.get(f"{user_id}_TOKEN")
     if not auth_token or not is_access_token_valid(auth_token):
-        refresh_token = db.get("REFRESH_TOKEN")
+        refresh_token = db.get(f"{user_id}_REFRESH_TOKEN")
         
         if refresh_token:
             new_access_token = refresh_access_token(refresh_token)
             
             if new_access_token:
-                db.set("TOKEN", new_access_token)
+                db.set(f"{user_id}_TOKEN", new_access_token)
                 auth_token = new_access_token
             else:
                 return {"Code": 401, "Error": "Failed to refresh access token"}
@@ -105,8 +122,12 @@ def get_playlist_handler():
 
 @app.route("/process-playlist", methods=["POST"])
 def process_playlist_handler():
-    auth_token = db.get("TOKEN")
+    user_id = session.get("user_id")
 
+    if not user_id:
+        return "Authorization required", 401
+
+    auth_token = db.get(f"{user_id}_TOKEN")
     if not auth_token or not is_access_token_valid(auth_token):
         return "Authorization required", 401
 
@@ -122,5 +143,4 @@ def process_playlist_handler():
 
 if __name__ == "__main__":
     port = os.getenv("PORT", "8080")
-    assert type(port) == int
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(port))
