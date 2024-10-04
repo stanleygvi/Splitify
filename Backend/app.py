@@ -23,8 +23,11 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
+app.config['SESSION_COOKIE_DOMAIN'] = '.splitifytool.com'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+
 redis_url = os.getenv("REDIS_URL")
-app.config["SESSION_REDIS"] = redis.from_url(redis_url)
 sess = Session()
 sess.init_app(app)
 
@@ -53,7 +56,7 @@ def login_handler():
                 db.set(f"{user_id}_TOKEN", new_access_token)
 
                 return redirect("https://splitifytool.com/input-playlist")
-    print("NO USER ID")
+            
     return redirect_to_spotify_login()
 
 def redirect_to_spotify_login():
