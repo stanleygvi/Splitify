@@ -20,6 +20,7 @@ CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login",
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
+print(redis.from_url(os.getenv("REDIS_URL")))
 Session(app)
 
 
