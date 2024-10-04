@@ -111,7 +111,8 @@ def get_playlist_handler():
     auth_token = request.cookies.get("auth_token")
 
     if not auth_token:
-        return {"Code": 401, "Error": "Authorization token required"}, 401
+        print(f"NO AUTH: {auth_token}")
+        return {"Code": 401, "Error": "Authorization token required"}
 
     playlists = get_all_playlists(auth_token)
 

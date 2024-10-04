@@ -74,7 +74,9 @@ function PlaylistInputPage() {
                       onClick={() => handlePlaylistSelection(playlist.id)}
                     >
                         <img 
-                            src={playlist.images[0]?.url || "https://www.fredsmithxmastrees.com/wp-content/uploads/2017/04/Square-500x500-dark-grey.png"} 
+                            src={playlist.images && playlist.images.length > 0 
+                                ? playlist.images[0].url 
+                                : "https://www.fredsmithxmastrees.com/wp-content/uploads/2017/04/Square-500x500-dark-grey.png"} 
                             alt={playlist.name + " cover image"} 
                             width={300} 
                             height={300}
@@ -86,7 +88,6 @@ function PlaylistInputPage() {
             <button onClick={handleProcessPlaylists}>Process Selected Playlists</button>
         </div>
     );
-
 }
 
 export default PlaylistInputPage;
