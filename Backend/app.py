@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify, url_for, session
+from flask import Flask, request, redirect, jsonify, url_for
 from datetime import timedelta
 from flask_cors import CORS
 import redis
@@ -17,16 +17,11 @@ app = Flask(__name__)
 CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login", "https://splitifytool.com/input-playlist"])
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
-# app.config["SESSION_TYPE"] = "redis"
-# app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
-sess = Session()
-sess.init_app(app)
+db = redis.from_url(os.getenv("REDIS_URL"))
 
 @app.route("/login")
 def login_handler():
-    auth_token = session.get("TOKEN")
+    auth_token = db.get("TOKEN")
     if (auth_token):
         print("\n\nTOKEN IN SESSION\n\n")
     else:
@@ -34,13 +29,13 @@ def login_handler():
     if auth_token and is_access_token_valid(auth_token):
         return redirect("https://splitifytool.com/input-playlist")
     
-    refresh_token = session.get("REFRESH_TOKEN")
+    refresh_token = db.get("REFRESH_TOKEN")
     
     if refresh_token:
         new_access_token = refresh_access_token(refresh_token)
         
         if new_access_token:
-            session["TOKEN"] = new_access_token
+            db.set("TOKEN", new_access_token)
 
             return redirect("https://splitifytool.com/input-playlist")
     
@@ -75,26 +70,26 @@ def callback_handler():
     if not token_data:
         return "Error exchanging code for token", 500
 
-    session["TOKEN"] = token_data.get("access_token")
-    session["REFRESH_TOKEN"] = token_data.get("refresh_token")
+    db.set("TOKEN", token_data.get("access_token"))
+    db.set("REFRESH_TOKEN",token_data.get("refresh_token"))
 
     return redirect("https://splitifytool.com/input-playlist")
 
 @app.route("/user-playlists")
 def get_playlist_handler():
-    auth_token = session.get("TOKEN")
+    auth_token = db.get("TOKEN")
     if (auth_token):
         print("\n\nTOKEN IN SESSION\n\n")
     else:
         print("\n\nNO TOKEN\n\n")
     if not auth_token or not is_access_token_valid(auth_token):
-        refresh_token = session.get("REFRESH_TOKEN")
+        refresh_token = db.get("REFRESH_TOKEN")
         
         if refresh_token:
             new_access_token = refresh_access_token(refresh_token)
             
             if new_access_token:
-                session["TOKEN"] = new_access_token
+                db.set("TOKEN", new_access_token)
                 auth_token = new_access_token
             else:
                 return {"Code": 401, "Error": "Failed to refresh access token"}
@@ -110,7 +105,7 @@ def get_playlist_handler():
 
 @app.route("/process-playlist", methods=["POST"])
 def process_playlist_handler():
-    auth_token = session.get("TOKEN")
+    auth_token = db.get("TOKEN")
 
     if not auth_token or not is_access_token_valid(auth_token):
         return "Authorization required", 401
