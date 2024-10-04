@@ -40,6 +40,7 @@ def login_handler():
         auth_token = db.get(f"{user_id}_TOKEN")
         print(f"AUTH_TOKEN: {auth_token}")
         if auth_token and is_access_token_valid(auth_token):
+            print("REDIRECTED")
             return redirect("https://splitifytool.com/input-playlist")
         
         refresh_token = db.get(f"{user_id}_REFRESH_TOKEN")
