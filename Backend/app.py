@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify, url_for
+from flask import Flask, request, redirect, jsonify, url_for, session
 from datetime import timedelta
 from flask_cors import CORS
 import redis
@@ -19,8 +19,8 @@ CORS(app, origins=["https://splitifytool.com", "https://splitifytool.com/login",
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
-session = Session()
-session.init_app(app)
+sess = Session()
+sess.init_app(app)
 
 @app.route("/login")
 def login_handler():
@@ -35,7 +35,7 @@ def login_handler():
         new_access_token = refresh_access_token(refresh_token)
         
         if new_access_token:
-            session.set("TOKEN") = new_access_token
+            session["TOKEN"] = new_access_token
 
             return redirect("https://splitifytool.com/input-playlist")
     
@@ -70,8 +70,8 @@ def callback_handler():
     if not token_data:
         return "Error exchanging code for token", 500
 
-    session.set("TOKEN") = token_data.get("access_token")
-    session.set("REFRESH_TOKEN") = token_data.get("refresh_token")
+    session["TOKEN"] = token_data.get("access_token")
+    session["REFRESH_TOKEN"] = token_data.get("refresh_token")
 
     return redirect("https://splitifytool.com/input-playlist")
 
@@ -85,7 +85,7 @@ def get_playlist_handler():
             new_access_token = refresh_access_token(refresh_token)
             
             if new_access_token:
-                session.set("TOKEN") = new_access_token
+                session["TOKEN"] = new_access_token
                 auth_token = new_access_token
             else:
                 return {"Code": 401, "Error": "Failed to refresh access token"}
