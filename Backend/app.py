@@ -94,6 +94,7 @@ def callback_handler():
     authToken = token_data.get("access_token")
     user_id = get_user_id(authToken)
     session["user_id"] = user_id
+    print(f"\n\n\nCallback user_id check: {session.get("user_id")}\n\n\n")
 
     db.set(f"{user_id}_TOKEN", authToken)
     db.set(f"{user_id}_REFRESH_TOKEN", token_data.get("refresh_token"))
