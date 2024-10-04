@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import './PlaylistInputPage.css'; // Importing the CSS file for styling
+import './PlaylistInputPage.css';
 
 function PlaylistInputPage() {
     const [playlists, setPlaylists] = useState([]);
     const [selectedPlaylists, setSelectedPlaylists] = useState([]);
 
     useEffect(() => {
-        fetch("https://splitify-app-96607781f61f.herokuapp.com/user-playlists",
-            {credentials: 'include'}
-        )
-        .then(response => response.json())
+
+        fetch("https://splitify-app-96607781f61f.herokuapp.com/user-playlists", {
+            credentials: 'include',
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to fetch playlists");
+            }
+            return response.json();
+        })
         .then(data => {
             if (data && data.items) {
                 setPlaylists(data.items);
@@ -28,7 +34,7 @@ function PlaylistInputPage() {
         } else {
             setSelectedPlaylists(prev => [...prev, id]);
         }
-    }
+    };
 
     const handleProcessPlaylists = () => {
         console.log("Selected Playlists:", selectedPlaylists);
@@ -38,6 +44,7 @@ function PlaylistInputPage() {
             headers: {
                 "Content-Type": "application/json"
             },
+            credentials: 'include',
             body: JSON.stringify({ playlistIds: selectedPlaylists })
         })
         .then(response => {
