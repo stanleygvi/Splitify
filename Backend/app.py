@@ -47,6 +47,7 @@ def login_handler():
         
         if refresh_token:
             new_access_token = refresh_access_token(refresh_token)
+            print(f"NEW ACCESS TOKEN: {new_access_token}")
             
             if new_access_token:
                 db.set(f"{user_id}_TOKEN", new_access_token)
