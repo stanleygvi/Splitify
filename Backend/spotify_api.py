@@ -18,9 +18,9 @@ def spotify_request(method, endpoint, auth_token, params=None, data=None, json_d
         return {}
     return response.json()
 
-def is_access_token_valid(auth_token)->dict:
+def is_access_token_valid(auth_token):
     response = spotify_request("GET", "/me", auth_token)
-    return response
+    return response is not None
 
 def refresh_access_token(refresh_token) -> str:
     client_id = os.getenv('CLIENT_ID')

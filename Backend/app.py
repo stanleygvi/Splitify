@@ -7,7 +7,8 @@ from Backend.spotify_api import (
     is_access_token_valid,
     refresh_access_token,
     get_all_playlists,
-    exchange_code_for_token
+    exchange_code_for_token,
+    spotify_request
 )
 from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
@@ -22,7 +23,6 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
-# Initialize Redis session
 redis_url = os.getenv("REDIS_URL")
 app.config["SESSION_REDIS"] = redis.from_url(redis_url)
 Session(app)
@@ -31,7 +31,6 @@ db = redis.from_url(redis_url)
 
 @app.route("/login")
 def login_handler():
-    # Check if the user is logged in by looking at their session ID
     user_id = session.get("user_id")
     
     if user_id:
@@ -80,10 +79,11 @@ def callback_handler():
     if not token_data:
         return "Error exchanging code for token", 500
 
-    # Get the Spotify user ID and store it in the session
     authToken = token_data.get("access_token")
-    user_id = is_access_token_valid(authToken).get("id","")
-    user_id = token_data.get("user_id")
+    
+    response = spotify_request("GET", "/me", authToken)
+    user_id = response.get("id")
+
     session["user_id"] = user_id
 
     db.set(f"{user_id}_TOKEN", authToken)
