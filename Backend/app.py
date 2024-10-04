@@ -39,27 +39,14 @@ db = redis.from_url(redis_url)
 
 @app.route("/login")
 def login_handler():
+    # Check if the user is logged in by looking at their session ID
     user_id = session.get("user_id")
-
+    
     if user_id:
-        print(f"YES USER ID: {user_id}")
-        auth_token = db.get(f"{user_id}_TOKEN")
-        print(f"AUTH_TOKEN: {auth_token}")
-        if auth_token and is_access_token_valid(auth_token):
-            print("REDIRECTED")
-            return redirect("https://splitifytool.com/input-playlist")
-        
-        refresh_token = db.get(f"{user_id}_REFRESH_TOKEN")
-        
-        if refresh_token:
-            new_access_token = refresh_access_token(refresh_token)
-            print(f"NEW ACCESS TOKEN: {new_access_token}")
-            
-            if new_access_token:
-                db.set(f"{user_id}_TOKEN", new_access_token)
-
-                return redirect("https://splitifytool.com/input-playlist")
-            
+        # The user is already logged in, redirect to playlist page
+        return redirect("/user-playlists")
+    
+    # If user is not logged in, redirect to Spotify for authorization
     return redirect_to_spotify_login()
 
 def redirect_to_spotify_login():
