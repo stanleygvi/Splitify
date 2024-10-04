@@ -44,7 +44,7 @@ def login_handler():
     
     if user_id:
         # The user is already logged in, redirect to playlist page
-        return redirect("/user-playlists")
+        return redirect("https://splitifytool.com/input-playlist")
     
     # If user is not logged in, redirect to Spotify for authorization
     return redirect_to_spotify_login()
