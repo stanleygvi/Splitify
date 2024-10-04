@@ -80,7 +80,7 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
         track_uris = cluster_slice["uri"].tolist()
         
         status = add_songs(playlist_id, track_uris, auth_token, position)
-        print(f"{name} split append status {status["code"]} starting from index: {position}")
+        print(f"{name} split append status {status} starting from index: {position}")
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
     response = get_playlist_children(start_index, playlist_id, auth_token)

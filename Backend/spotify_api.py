@@ -4,7 +4,7 @@ import os
 
 SPOTIFY_API_URL = "https://api.spotify.com/v1"
 
-def spotify_request(method, endpoint, auth_token, params=None, data=None, json_data=None) -> dict:
+def spotify_request(method, endpoint, auth_token, params=None, data=None, json_data=None):
     url = f"{SPOTIFY_API_URL}{endpoint}"
     headers = {
         "Authorization": f"Bearer {auth_token}",
