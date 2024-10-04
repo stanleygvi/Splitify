@@ -20,6 +20,7 @@ app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 app.config["SESSION_COOKIE_DOMAIN"] = ".splitifytool.com"
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_TYPE"] = "redis"
 
 redis_url = os.getenv("REDIS_URL")
 db = redis.from_url(redis_url)
