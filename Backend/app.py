@@ -8,7 +8,7 @@ from Backend.spotify_api import (
     refresh_access_token,
     get_all_playlists,
     exchange_code_for_token,
-    spotify_request
+    get_user_id
 )
 from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
@@ -34,7 +34,7 @@ db = redis.from_url(redis_url)
 @app.route("/login")
 def login_handler():
     user_id = session.get("user_id")
-    
+
     if user_id:
         auth_token = db.get(f"{user_id}_TOKEN")
         if auth_token and is_access_token_valid(auth_token):
@@ -82,10 +82,7 @@ def callback_handler():
         return "Error exchanging code for token", 500
 
     authToken = token_data.get("access_token")
-    
-    response = spotify_request("GET", "/me", authToken)
-    user_id = response.get("id")
-
+    user_id = get_user_id(authToken)
     session["user_id"] = user_id
 
     db.set(f"{user_id}_TOKEN", authToken)
@@ -96,6 +93,7 @@ def callback_handler():
 @app.route("/user-playlists")
 def get_playlist_handler():
     user_id = session.get("user_id")
+    print(f"\n\n\nUSER_ID:{user_id}\n\n\n")
     
     if not user_id:
         return {"Code": 401, "Error": "User not authenticated"}, 401
