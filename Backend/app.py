@@ -63,7 +63,7 @@ def login_handler():
 def redirect_to_spotify_login():
     client_id = os.getenv("CLIENT_ID")
     state = generate_random_string(16)
-    scope = "user-read-private playlist-modify-public playlist-modify-private playlist-read-collaborative"
+    scope = "user-read-private playlist-modify-public playlist-read-collaborative"
 
     params = {
         "response_type": "code",
