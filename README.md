@@ -2,7 +2,7 @@
 
 ### Disclaimer
 
-Hi! Thank you for checking out Splitify! I am currently trying to get an extension from Spotify in order to have this fully deployed. If you want to try it out feel free to shoot me an email (stanleygvi@gmail.com) with your Spotify email and I can add you to the authorized users.
+Hi! Thank you for checking out Splitify! I am currently trying to get an extension from Spotify in order to have this fully deployed. If you want to try it out feel free to shoot me an email [stanleygvi@gmail.com] with your Spotify email and I can add you to the authorized users.
 
 ## Description
 
@@ -22,12 +22,25 @@ At Splitify, we take your privacy and data security seriously. This document exp
 This scope is required to authenticate you with Spotify using OAuth (Spotify's secure login mechanism). It allows us to access basic information about your Spotify account, such as your Spotify user ID, which is necessary for actions like retrieving your playlists or creating new ones. 
 
 **What we access**:  
-- Basic account details like your user ID, country, and display name.  
+- Only your user ID and your playlists.  
 - **We do not access** your subscription type, listening habits, or any other private data beyond what is necessary to identify you as the user.
 
 **What we don't do**:  
 - We do not store or use any private information for purposes outside of our service.  
 - We do not share your data with third parties.
+
+### `playlist-read-private`
+
+**Why we need it**:  
+This scope allows us to access both your public and private playlists so that we can retrieve the tracks and process them using the Splitify tool. If you want to split or manage any of your playlists, this permission is necessary to view their contents.
+
+**What we access**:  
+- We access both public and private playlists to read their contents for playlist splitting or processing.  
+- **We do not modify** or change anything in your playlists without your explicit request.
+
+**What we don't do**:  
+- We do not make any unauthorized modifications to your playlists.
+- We do not share your playlist data with any third parties.
 
 ### `playlist-modify-public`
 
@@ -41,18 +54,6 @@ This scope is required to create new public playlists on your behalf when we spl
 **What we don't do**:  
 - We do not add, remove, or change any tracks in your public playlists without your explicit instruction.
 - We do not create or modify any private playlists unless requested in future features.
-
-### `playlist-read-collaborative`
-
-**Why we need it**:  
-This scope allows us to access collaborative playlists, where multiple users can add and edit tracks. If you want to split or process any collaborative playlists with Splitify, this permission is necessary to retrieve the tracks and playlists you collaborate on.
-
-**What we access**:  
-- We only access collaborative playlists to read their contents.  
-- **We do not modify** or change anything in the playlist.
-
-**What we don't do**:  
-- We do not make any unauthorized modifications to your collaborative playlists or interfere with other users’ contributions.
 
 ## Your Data, Your Control
 
