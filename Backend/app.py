@@ -36,7 +36,7 @@ redis_url = os.getenv("REDIS_URL")
 sess = Session()
 sess.init_app(app)
 
-CORS(app, origins=["https://www.splitifytool.com"], supports_credentials=True)
+CORS(app, origins=["https://www.splitifytool.com", "https://splitify-fac76.web.app"], supports_credentials=True)
 
 
 
