@@ -16,7 +16,7 @@ from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
 url = urlparse(os.environ.get("REDIS_URL"))
 
-r = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"))
+db = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"))
 
 app = Flask(__name__)
 
@@ -26,7 +26,7 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_USE_SIGNER"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
-app.config["SESSION_REDIS"] = r
+app.config["SESSION_REDIS"] = db
 
 app.config["SESSION_COOKIE_DOMAIN"] = ".splitifytool.com"
 app.config["SESSION_COOKIE_SECURE"] = True
