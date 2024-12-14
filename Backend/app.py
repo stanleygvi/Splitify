@@ -16,7 +16,7 @@ from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
 url = urlparse(os.environ.get("REDIS_URL"))
 
-db = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"))
+db = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"), ssl_cert_reqs=None)
 
 app = Flask(__name__)
 
