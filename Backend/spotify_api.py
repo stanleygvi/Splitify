@@ -57,7 +57,7 @@ def exchange_code_for_token(code):
     data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": "https://splitify-app-96607781f61f.herokuapp.com/callback",
+        "redirect_uri": "https://www.splitifytool.comcallback",
         "client_id": client_id,
         "client_secret": client_secret,
     }
