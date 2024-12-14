@@ -36,9 +36,8 @@ sess.init_app(app)
 
 CORS(app, origins=["https://www.splitifytool.com"], supports_credentials=True)
 
-url = urlparse(os.environ.get("REDIS_URL"))
-tls = os.environ.get("REDIS_TLS_URL")
-r = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"), ssl_cert_reqs=tls)
+url = urlparse(os.environ.get("REDIS_TLS_URL"))
+r = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"))
 
 
 @app.route("/login")
