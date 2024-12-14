@@ -28,7 +28,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 
 app.config["SESSION_REDIS"] = db
 
-app.config["SESSION_COOKIE_DOMAIN"] = ".splitifytool.com"
+app.config["SESSION_COOKIE_DOMAIN"] = ".splitify-fac76.web.app"
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 
@@ -102,7 +102,7 @@ def callback_handler():
 
     response = make_response(redirect("https://splitify-fac76.web.app/input-playlist"))
     response.set_cookie(
-        "auth_token", auth_token, httponly=True, secure=True, samesite="None"
+        "auth_token", auth_token, secure=True, samesite="None"
     )
 
     return response
