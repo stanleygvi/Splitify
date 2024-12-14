@@ -33,7 +33,7 @@ redis_url = os.getenv("REDIS_URL")
 sess = Session()
 sess.init_app(app)
 
-CORS(app, origins=["https://splitifytool.com"], supports_credentials=True)
+CORS(app, origins=["https://www.splitifytool.com"], supports_credentials=True)
 
 redis_url = os.getenv("REDIS_URL")
 db = redis.from_url(redis_url)
@@ -52,7 +52,7 @@ def login_handler():
             else:
                 return redirect_to_spotify_login()
 
-        response = make_response(redirect("https://splitifytool.com/input-playlist"))
+        response = make_response(redirect("https://www.splitifytool.com/input-playlist"))
         response.set_cookie(
             "auth_token", auth_token, httponly=True, secure=True, samesite="None"
         )
@@ -98,7 +98,7 @@ def callback_handler():
     db.set(f"{user_id}_TOKEN", auth_token)
     db.set(f"{user_id}_REFRESH_TOKEN", token_data.get("refresh_token"))
 
-    response = make_response(redirect("https://splitifytool.com/input-playlist"))
+    response = make_response(redirect("https://www.splitifytool.com/input-playlist"))
     response.set_cookie(
         "auth_token", auth_token, httponly=True, secure=True, samesite="None"
     )
