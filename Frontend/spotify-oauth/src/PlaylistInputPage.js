@@ -7,7 +7,7 @@ function PlaylistInputPage() {
 
     useEffect(() => {
 
-        fetch("https://www.splitifytool.com/user-playlists", {
+        fetch("https://splitify-app-96607781f61f.herokuapp.com/user-playlists", {
             credentials: 'include',
         })
         .then(response => {
@@ -39,7 +39,7 @@ function PlaylistInputPage() {
     const handleProcessPlaylists = () => {
         console.log("Selected Playlists:", selectedPlaylists);
         
-        fetch("https://www.splitifytool.com/process-playlist", {
+        fetch("https://splitify-app-96607781f61f.herokuapp.com/process-playlist", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

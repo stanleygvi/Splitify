@@ -2,6 +2,7 @@ from flask import Flask, request, redirect, jsonify, url_for, make_response, ses
 from flask_session import Session
 from datetime import timedelta
 from flask_cors import CORS
+from urllib.parse import urlparse
 import redis
 import os
 from Backend.spotify_api import (
@@ -35,8 +36,8 @@ sess.init_app(app)
 
 CORS(app, origins=["https://www.splitifytool.com"], supports_credentials=True)
 
-redis_url = os.getenv("REDIS_URL")
-db = redis.from_url(redis_url)
+url = urlparse(os.environ.get("REDIS_URL"))
+r = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"), ssl_cert_reqs=None)
 
 
 @app.route("/login")
