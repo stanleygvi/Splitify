@@ -20,7 +20,6 @@ def spotify_request(
 
     if response.status_code >= 400:
         print(f"Spotify API request error: {response.status_code}, {response.text}")
-        return {}
     return response.json()
 
 
