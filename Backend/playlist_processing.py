@@ -1,6 +1,6 @@
 from threading import Thread, Lock
 from concurrent.futures import ThreadPoolExecutor
-from collections import defaultdict, Counter
+from collections import Counter
 from Backend.spotify_api import (
     get_playlist_length,
     get_playlist_children,
@@ -60,7 +60,7 @@ def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
 def get_artist_details(artist_ids, auth_token):
     """Fetch artist details, specifically genres, for a list of artist IDs."""
     artist_details = {}
-    chunk_size = 50  # Spotify API allows up to 50 artist IDs per request
+    chunk_size = 50
 
     for i in range(0, len(artist_ids), chunk_size):
         artist_chunk = artist_ids[i:i + chunk_size]
@@ -121,6 +121,11 @@ def create_and_populate_subgenre_playlists(
 
         used_tracks.update(genre_tracks)
 
+def process_playlists(auth_token, playlist_ids):
+    """Process multiple playlists by splitting them into subgenre playlists."""
+    for playlist_id in playlist_ids:
+        process_single_playlist(auth_token, playlist_id)
+
 def process_single_playlist(auth_token, playlist_id):
     """Process a single playlist and divide its tracks into subgenre playlists."""
     playlist_name = get_playlist_name(playlist_id, auth_token)
@@ -132,7 +137,6 @@ def process_single_playlist(auth_token, playlist_id):
         track_id: {"uri": track_id}
         for track_id in track_genres.keys()
     }
-
 
     sorted_genres = sort_genres_by_count(track_genres)
 
