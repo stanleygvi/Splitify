@@ -19,9 +19,15 @@ def spotify_request(
         method, url, headers=headers, params=params, data=data, json=json_data
     )
 
+    if response.status_code == 429:  # Rate limited
+        retry_after = int(response.headers.get("Retry-After", 1))
+        print(f"Rate limited. Retrying after {retry_after} seconds.")
+        time.sleep(retry_after)
+        return spotify_request(method, endpoint, auth_token, params, data, json_data)
+
     if response.status_code >= 400:
         print(f"Spotify API request error: {response.status_code}, {response.text}")
-        print(response)
+        return {}
     return response.json()
 
 
@@ -150,7 +156,7 @@ def get_artists(artist_ids, auth_token):
     all_artists = {}
     batch_size = 50
     for i in range(0, len(artist_ids), batch_size):
-        batch = artist_ids[i:i + batch_size]
+        batch = artist_ids[i : i + batch_size]
         endpoint = "/artists"
         params = {"ids": ",".join(batch)}
         response = spotify_request("GET", endpoint, auth_token, params=params)

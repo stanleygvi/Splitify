@@ -43,7 +43,12 @@ def clean_audio_features(
 def process_playlists(auth_token, playlist_ids):
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [
-            executor.submit(process_single_playlist, auth_token, playlist_id, get_playlist_length(playlist_id, auth_token))
+            executor.submit(
+                process_single_playlist,
+                auth_token,
+                playlist_id,
+                get_playlist_length(playlist_id, auth_token),
+            )
             for playlist_id in playlist_ids
             if get_playlist_length(playlist_id, auth_token) != -1
         ]
@@ -141,7 +146,6 @@ def process_single_playlist(auth_token, playlist_id, total_length):
         print(f"Failed to process playlist: {playlist_id}")
         return
 
-    # track_ids = [track["id"] for track in playlist_data_store["tracks"]]
     artist_ids = list(
         {
             track["artist_id"]
@@ -227,13 +231,13 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
 
 
 def fetch_genres(artist_ids, track_id, auth_token, data_store, genre_lock):
-    artist_data = get_artists(artist_ids, auth_token)
-    if artist_data and "artists" in artist_data:
-        genres = set()
-        for artist in artist_data["artists"]:
-            genres.update(artist.get("genres", []))
-        with genre_lock:
-            data_store["genres"].append({"track_id": track_id, "genres": list(genres)})
+    artist_genres = get_artist_details(artist_ids, auth_token)
+    genres = set()
+    for artist_id in artist_ids:
+        genres.update(artist_genres.get(artist_id, {}).get("genres", []))
+    with genre_lock:
+        data_store["genres"].append({"track_id": track_id, "genres": list(genres)})
+
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
     response = get_playlist_children(start_index, playlist_id, auth_token)
@@ -248,7 +252,14 @@ def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
         genre_lock = Lock()
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [
-                executor.submit(fetch_genres, artist_ids, track_id, auth_token, data_store, genre_lock)
+                executor.submit(
+                    fetch_genres,
+                    artist_ids,
+                    track_id,
+                    auth_token,
+                    data_store,
+                    genre_lock,
+                )
                 for track_id, artist_ids in track_to_artists.items()
             ]
             for future in futures:
@@ -257,6 +268,8 @@ def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
                 except Exception as e:
                     print(f"Error fetching genres: {e}")
 
-        print(f"Appended {len(response['items'])} tracks' genres from playlist starting at index {start_index}")
+        print(
+            f"Appended {len(response['items'])} tracks' genres from playlist starting at index {start_index}"
+        )
     else:
         print(f"Failed to append playlist data from index {start_index}")
