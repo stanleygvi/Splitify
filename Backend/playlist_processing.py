@@ -243,12 +243,12 @@ def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
     response = get_playlist_children(start_index, playlist_id, auth_token)
     if response and "items" in response:
         tracks = response["items"]
+        print(tracks)
         track_to_artists = {
             track["track"]["id"]: [artist["id"] for artist in track["track"]["artists"]]
             for track in tracks
             if track["track"] and "artists" in track["track"]
         }
-
         genre_lock = Lock()
         threads = []
 
