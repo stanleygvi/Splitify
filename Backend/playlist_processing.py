@@ -115,5 +115,5 @@ async def process_playlists(auth_token, playlist_ids):
     await asyncio.gather(*tasks)
 
 # Entry point for the script
-def main(auth_token, playlist_ids):
+def process_all(auth_token, playlist_ids):
     asyncio.run(process_playlists(auth_token, playlist_ids))
