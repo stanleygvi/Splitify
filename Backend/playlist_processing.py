@@ -233,6 +233,7 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
 def fetch_genres(artist_ids, track_id, auth_token, data_store, genre_lock):
     artist_genres = get_artist_details(artist_ids, auth_token)
     genres = set()
+    print(artist_genres)
     for artist_id in artist_ids:
         genres.update(artist_genres.get(artist_id, {}).get("genres", []))
     with genre_lock:
