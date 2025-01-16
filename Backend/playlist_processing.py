@@ -91,7 +91,7 @@ def create_and_populate_subgenre_playlists(
             else:
                 track_slice = genre_tracks[position : position + 100]
 
-            track_uris = [tracks_data[track_id]["uri"] for track_id in track_slice]
+            track_uris = [f"spotify:track:{tracks_data[track_id]["uri"]}" for track_id in track_slice]
             
             track_uris_str = ",".join(track_uris)[:-1]
             print(f"track_uris: {track_uris}")
