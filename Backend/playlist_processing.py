@@ -139,6 +139,7 @@ def process_single_playlist(auth_token, playlist_id, total_length):
 
     for i in range(0, slices * 100, 100):
         append_to_playlist_data(i, playlist_id, auth_token, playlist_data_store)
+        time.sleep(0.5)
 
     if len(playlist_data_store["tracks"]) < 1:
         print(f"Failed to process playlist: {playlist_id}")
@@ -255,6 +256,7 @@ def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
             thread = Thread(target=fetch_genres, args=(artist_ids, track_id, auth_token, data_store, genre_lock))
             thread.start()
             threads.append(thread)
+            time.sleep(0.5)
 
         for thread in threads:
             thread.join()
