@@ -120,7 +120,7 @@ def create_and_populate_subgenre_playlist(
 
 def get_artist_details(artist_ids, auth_token):
     artist_genres = get_artists(artist_ids, auth_token)
-    return {artist_id: artist_genres.get(artist_id, []) for artist_id in artist_ids}
+    return {artist_id: artist_genres for artist_id in artist_ids}
 
 
 # Subgenre --------------------------------------------------------------------------------------------------------
@@ -145,6 +145,7 @@ def process_single_playlist(auth_token, playlist_id, total_length):
     )
 
     artist_data = get_artist_details(artist_ids, auth_token)
+    print(artist_data)
 
     if not artist_data:
         print(f"Failed to fetch artist details for playlist: {playlist_id}")
