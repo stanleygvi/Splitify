@@ -89,11 +89,12 @@ async def create_and_populate_subgenre_playlists(
 
         used_tracks.update(genre_tracks)
 
-async def process_single_playlist(auth_token, playlist_id):
+async def process_single_playlist(auth_token, playlist_id, user_id):
     """Process a single playlist and divide its tracks into subgenre playlists."""
+    print(f"Processing {playlist_id}...")
     playlist_name =  get_playlist_name(playlist_id, auth_token)
-    user_id =  get_user_id(auth_token)
 
+    print(f"Assigning genre to tracks...")
     track_genres = await assign_genres_to_tracks(auth_token, playlist_id)
     tracks_data = {
         track_id: {"uri": track_id}
@@ -107,7 +108,9 @@ async def process_single_playlist(auth_token, playlist_id):
 
 async def process_playlists(auth_token, playlist_ids):
     """Process multiple playlists by splitting them into subgenre playlists."""
-    tasks = [process_single_playlist(auth_token, playlist_id) for playlist_id in playlist_ids]
+    print(f"Processing {len(playlist_ids)} playlists...")
+    user_id =  get_user_id(auth_token)
+    tasks = [process_single_playlist(auth_token, playlist_id, user_id) for playlist_id in playlist_ids]
     await asyncio.gather(*tasks)
 
 # Entry point for the script
