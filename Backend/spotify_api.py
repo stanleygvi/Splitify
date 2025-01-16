@@ -147,6 +147,7 @@ async def add_songs(playlist_id, track_uris, auth_token, position):
     endpoint = f"/playlists/{playlist_id}/tracks"
     json_data = {"uris": track_uris, "position": position}
     response = spotify_request("POST", endpoint, auth_token, json_data=json_data)
+    await asyncio.sleep(0.5)
     if response:
         return response
     return None

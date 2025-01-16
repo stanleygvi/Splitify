@@ -100,24 +100,16 @@ async def create_and_populate_subgenre_playlists(
             )
 
             slices = calc_slices(len(genre_tracks))
+            tasks = []
             for position in range(0, slices * 100, 100):
-                try:
-                    if (position + 100) > len(genre_tracks):
-                        track_slice = genre_tracks[position:]
-                    else:
-                        track_slice = genre_tracks[position : position + 100]
+                if (position + 100) > len(genre_tracks):
+                    track_slice = genre_tracks[position:]
+                else:
+                    track_slice = genre_tracks[position : position + 100]
 
-                    track_uris = [f"spotify:track:{tracks_data[track_id]['uri']}" for track_id in track_slice]
-
-                    status = await add_songs(playlist_id, track_uris, auth_token, position)
-                    await asyncio.sleep(0.5)
-
-                    if not status or status.get("Error", None):
-                        print(
-                            f"Append Error: Playlist {playlist_name} - {genre}, status {status}, starting from index: {position}"
-                        )
-                except Exception as e:
-                    print(f"Error adding tracks to playlist {playlist_name} - {genre}: {e}")
+                track_uris = [f"spotify:track:{tracks_data[track_id]['uri']}" for track_id in track_slice]
+                tasks.append(add_songs(playlist_id, track_uris, auth_token, position))
+            await asyncio.gather(*tasks)
 
             used_tracks.update(genre_tracks)
         log_step_time("Creating and populating subgenre playlists", start_time)
