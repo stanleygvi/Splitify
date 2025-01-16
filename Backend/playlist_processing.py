@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import Thread, Lock
 from collections import defaultdict
 from Backend.spotify_api import (
     get_playlist_length,
@@ -209,6 +209,7 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
                 f"Append Error: Playlist{name} split, status {status} starting from index: {position}"
             )
 
+
 # K MEANS CLUSTERING ----------------------------------------------------------------------
 # def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
 #     response = get_playlist_children(start_index, playlist_id, auth_token)
@@ -227,25 +228,40 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
 #         print(f"Failed to append playlist data from index {start_index}")
 # ----------------------------------------------------------------------------------------
 
+
+def fetch_genres(artist_ids, track_id, auth_token, data_store, genre_lock):
+    """Fetch genres for a track's artists and store them in the data store."""
+    artist_data = get_artists(artist_ids, auth_token)
+    if artist_data and "artists" in artist_data:
+        genres = set()
+        for artist in artist_data["artists"]:
+            genres.update(artist.get("genres", []))
+        with genre_lock:
+            data_store["genres"].append({"track_id": track_id, "genres": list(genres)})
+
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
     response = get_playlist_children(start_index, playlist_id, auth_token)
     if response and "items" in response:
         tracks = response["items"]
-        track_ids = [track["track"]["id"] for track in tracks if track["track"]]
-        artist_ids = [artist["id"] for track in tracks for artist in track["track"]["artists"] if track["track"] and "artists" in track["track"]]
+        track_to_artists = {
+            track["track"]["id"]: [artist["id"] for artist in track["track"]["artists"]]
+            for track in tracks
+            if track["track"] and "artists" in track["track"]
+        }
 
-        audio_features = get_audio_features(track_ids, auth_token)
-        clean_audio_features(
-            audio_features, ["type", "id", "track_href", "analysis_url", "duration_ms"]
-        )
+        genre_lock = Lock()
+        threads = []
 
-        for i, feature in enumerate(audio_features):
-            if feature:
-                feature["artist_id"] = artist_ids[i]
+        for track_id, artist_ids in track_to_artists.items():
+            thread = Thread(target=fetch_genres, args=(artist_ids, track_id, auth_token, data_store, genre_lock))
+            thread.start()
+            threads.append(thread)
 
-        data_store["tracks"].extend(audio_features)
+        for thread in threads:
+            thread.join()
+
         print(
-            f"Appended {len(response['items'])} tracks from playlist starting at index {start_index}"
+            f"Appended {len(response['items'])} tracks' genres from playlist starting at index {start_index}"
         )
     else:
         print(f"Failed to append playlist data from index {start_index}")
