@@ -119,19 +119,8 @@ def create_and_populate_subgenre_playlist(
 
 
 def get_artist_details(artist_ids, auth_token):
-    """Fetch details for multiple artists, including their subgenres."""
-    artist_data = {}
-    batch_size = 50
-    for i in range(0, len(artist_ids), batch_size):
-        batch = artist_ids[i : i + batch_size]
-        response = get_artists(batch, auth_token)
-        print(response)
-        if response and "artists" in response:
-            for artist in response["artists"]:
-                artist_data[artist["id"]] = {
-                    "genres": artist.get("genres", []),
-                }
-    return artist_data
+    artist_genres = get_artists(artist_ids, auth_token)
+    return {artist_id: artist_genres.get(artist_id, []) for artist_id in artist_ids}
 
 
 # Subgenre --------------------------------------------------------------------------------------------------------
