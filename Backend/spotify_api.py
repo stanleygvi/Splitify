@@ -145,7 +145,15 @@ def add_songs(playlist_id, track_uris, auth_token, position):
 
 
 def get_artists(artist_ids, auth_token):
-    endpoint = "/artists"
-    params = {"ids": ",".join(artist_ids)}
-    response = spotify_request("GET", endpoint, auth_token, params=params)
-    return response
+    """Fetch details for multiple artists in batches of 50."""
+    all_artists = {}
+    batch_size = 50
+    for i in range(0, len(artist_ids), batch_size):
+        batch = artist_ids[i:i + batch_size]
+        endpoint = "/artists"
+        params = {"ids": ",".join(batch)}
+        response = spotify_request("GET", endpoint, auth_token, params=params)
+        if response and "artists" in response:
+            for artist in response["artists"]:
+                all_artists[artist["id"]] = artist.get("genres", [])
+    return all_artists
