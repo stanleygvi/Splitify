@@ -28,7 +28,7 @@ def assign_genres_to_tracks(auth_token, playlist_id):
                 for track in tracks
                 if track["track"] and "artists" in track["track"]
             }
-
+            print(track_to_artists)
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [
                     executor.submit(
