@@ -1,4 +1,4 @@
-from threading import Thread, Lock
+from threading import  Lock
 from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 from Backend.spotify_api import (
