@@ -93,7 +93,8 @@ def get_all_playlists(auth_token):
         return None
 
     endpoint = f"/users/{user_id}/playlists"
-    response = spotify_request("GET", endpoint, auth_token)
+    params = {"limit": 50}
+    response = spotify_request("GET", endpoint, auth_token, params)
     return response
 
 

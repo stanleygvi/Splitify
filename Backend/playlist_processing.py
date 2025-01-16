@@ -54,7 +54,8 @@ async def assign_genres_to_tracks(auth_token, playlist_id):
                     if track["track"] and "artists" in track["track"]
                 }
                 for track_id, artist_ids in track_to_artists.items():
-                    tasks.append(fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_cache, genre_lock))
+                    genres = await fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_cache, genre_lock)
+                    tasks.append(genres)
 
         await asyncio.gather(*tasks)
         log_step_time("Assigning genres to tracks", start_time)
