@@ -112,7 +112,7 @@ def get_playlist_children(start_index, playlist_id, auth_token):
     params = {
         "offset": start_index,
         "limit": 100,
-        "fields": "items(track(name,id,artists(name)))",
+        "fields": "items(track(name,id,artists(id)))",
     }
     response = spotify_request("GET", endpoint, auth_token, params=params)
     return response
