@@ -125,6 +125,7 @@ def get_artist_details(artist_ids, auth_token):
     for i in range(0, len(artist_ids), batch_size):
         batch = artist_ids[i : i + batch_size]
         response = get_artists(batch, auth_token)
+        print(response)
         if response and "artists" in response:
             for artist in response["artists"]:
                 artist_data[artist["id"]] = {
