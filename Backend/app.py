@@ -1,9 +1,9 @@
 import redis
 import os
-from flask import Flask, request, redirect, jsonify, url_for, make_response, session
-from flask_session import Session
+from fastapi import FastAPI, Request, Response, Depends, HTTPException
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import timedelta
-from flask_cors import CORS
 from urllib.parse import urlparse
 from Backend.spotify_api import (
     is_access_token_valid,
@@ -14,6 +14,7 @@ from Backend.spotify_api import (
 )
 from Backend.playlist_processing import process_all
 from Backend.helpers import generate_random_string
+from starlette.middleware.sessions import SessionMiddleware
 
 url = urlparse(os.environ.get("REDIS_URL"))
 
@@ -25,33 +26,31 @@ db = redis.Redis(
     ssl_cert_reqs=None,
 )
 
-app = Flask(__name__)
+app = FastAPI()
 
-app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
-app.config["SESSION_TYPE"] = "redis"
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_USE_SIGNER"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
-
-app.config["SESSION_REDIS"] = db
-
-app.config["SESSION_COOKIE_DOMAIN"] = ".splitify-fac76.web.app"
-app.config["SESSION_COOKIE_SECURE"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-
-redis_url = os.getenv("REDIS_URL")
-sess = Session()
-sess.init_app(app)
-
-CORS(
-    app,
-    origins=["https://www.splitifytool.com", "https://splitify-fac76.web.app"],
-    supports_credentials=True,
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://www.splitifytool.com", "https://splitify-fac76.web.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("FLASK_SECRET_KEY"),
+    session_cookie="splitify_session",
+    max_age=3600,
+    https_only=True,
+    same_site="none",
+)
 
-@app.route("/login")
-def login_handler():
+def get_session(request: Request):
+    return request.session
+
+@app.get("/login")
+async def login_handler(request: Request):
+    session = get_session(request)
     uid = session.get("uid")
     if uid:
         auth_token = db.get(f"{uid}_TOKEN")
@@ -61,19 +60,16 @@ def login_handler():
                 new_auth_token = refresh_access_token(refresh_token)
                 db.set(f"{uid}_TOKEN", new_auth_token)
             else:
-                return redirect_to_spotify_login()
+                return await redirect_to_spotify_login()
 
-        response = make_response(
-            redirect("https://www.splitifytool.com/input-playlist")
-        )
+        response = RedirectResponse("https://www.splitifytool.com/input-playlist")
         response.set_cookie(
-            "auth_token", auth_token, httponly=True, secure=True, samesite="None"
+            "auth_token", auth_token, httponly=True, secure=True, samesite="none"
         )
         return response
-    return redirect_to_spotify_login()
+    return await redirect_to_spotify_login()
 
-
-def redirect_to_spotify_login():
+async def redirect_to_spotify_login():
     client_id = os.getenv("CLIENT_ID")
     state = generate_random_string(16)
     scope = "user-read-private playlist-modify-public playlist-read-private"
@@ -83,27 +79,24 @@ def redirect_to_spotify_login():
         "client_id": client_id,
         "scope": scope,
         "show_dialog": "true",
-        "redirect_uri": url_for("callback_handler", _external=True),
+        "redirect_uri": "https://splitify-fac76.web.app/callback",
         "state": state,
     }
 
     url = "https://accounts.spotify.com/authorize?" + "&".join(
         [f"{key}={value}" for key, value in params.items()]
     )
-    return redirect(url)
+    return RedirectResponse(url)
 
-
-@app.route("/callback")
-def callback_handler():
-    code = request.args.get("code")
-
+@app.get("/callback")
+async def callback_handler(code: str):
     if not code:
-        return "No code present in callback", 400
+        raise HTTPException(status_code=400, detail="No code present in callback")
 
     token_data = exchange_code_for_token(code)
 
     if not token_data:
-        return "Error exchanging code for token", 500
+        raise HTTPException(status_code=500, detail="Error exchanging code for token")
 
     auth_token = token_data.get("access_token")
     user_id = get_user_id(auth_token)
@@ -111,46 +104,44 @@ def callback_handler():
     db.set(f"{user_id}_TOKEN", auth_token)
     db.set(f"{user_id}_REFRESH_TOKEN", token_data.get("refresh_token"))
 
-    response = make_response(redirect("https://splitify-fac76.web.app/input-playlist"))
-    response.set_cookie("auth_token", auth_token, secure=True, samesite="None")
+    response = RedirectResponse("https://splitify-fac76.web.app/input-playlist")
+    response.set_cookie("auth_token", auth_token, secure=True, samesite="none")
 
     return response
 
-
-@app.route("/user-playlists")
-def get_playlist_handler():
+@app.get("/user-playlists")
+async def get_playlist_handler(request: Request):
     auth_token = request.cookies.get("auth_token")
 
     if not auth_token:
-        print(f"NO AUTH: {auth_token}")
-        return {"Code": 401, "Error": "Authorization token required"}
+        raise HTTPException(status_code=401, detail="Authorization token required")
 
     playlists = get_all_playlists(auth_token)
 
     if not playlists:
-        return {"Code": 500, "Error": "Failed to get playlists"}
+        raise HTTPException(status_code=500, detail="Failed to get playlists")
 
-    return jsonify(playlists)
+    return JSONResponse(playlists)
 
-
-@app.route("/process-playlist", methods=["POST"])
-def process_playlist_handler():
-
+@app.post("/process-playlist")
+async def process_playlist_handler(request: Request):
     auth_token = request.cookies.get("auth_token")
 
     if not auth_token or not is_access_token_valid(auth_token):
-        return "Authorization required", 401
+        raise HTTPException(status_code=401, detail="Authorization required")
 
-    assert request.json
-    playlist_ids = request.json.get("playlistIds", [])
+    data = await request.json()
+    playlist_ids = data.get("playlistIds", [])
 
     if not playlist_ids:
-        return "No playlist IDs provided", 400
+        raise HTTPException(status_code=400, detail="No playlist IDs provided")
+
     process_all(auth_token, playlist_ids)
 
-    return jsonify({"message": "Playlists processed successfully!"}), 200
-
+    return JSONResponse({"message": "Playlists processed successfully!"}, status_code=200)
 
 if __name__ == "__main__":
-    port = os.getenv("PORT", "8080")
-    app.run(host="0.0.0.0", port=int(port))
+    import uvicorn
+
+    port = int(os.getenv("PORT", "8080"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
