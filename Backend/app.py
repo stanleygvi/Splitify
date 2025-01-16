@@ -11,9 +11,8 @@ from Backend.spotify_api import (
     get_all_playlists,
     exchange_code_for_token,
     get_user_id,
-    process_all
 )
-from Backend.playlist_processing import process_playlists
+from Backend.playlist_processing import process_all
 from Backend.helpers import generate_random_string
 
 url = urlparse(os.environ.get("REDIS_URL"))
