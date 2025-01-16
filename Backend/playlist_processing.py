@@ -93,10 +93,8 @@ def create_and_populate_subgenre_playlists(
 
             track_uris = [f"spotify:track:{tracks_data[track_id]["uri"]}" for track_id in track_slice]
             
-            track_uris_str = ",".join(track_uris)[:-1]
             print(f"track_uris: {track_uris}")
-            print(f"str: {track_uris_str}")
-            status = add_songs(playlist_id, track_uris_str, auth_token, position)
+            status = add_songs(playlist_id, track_uris, auth_token, position)
             time.sleep(0.5)
 
             if not status or status.get("Error", None):
