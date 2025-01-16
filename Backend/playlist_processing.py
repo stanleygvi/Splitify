@@ -138,7 +138,7 @@ async def create_and_populate_subgenre_playlists(
             ]
 
             # Check if the genre constitutes >= 20% of the playlist
-            if len(genre_tracks) / total_tracks < 0.2:
+            if len(genre_tracks) / total_tracks <= 0.1:
                 continue
 
             # Schedule the creation of this genre's playlist
