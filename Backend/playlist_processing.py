@@ -53,7 +53,7 @@ def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
     artist_genres = get_artists(artist_ids, auth_token)
     genres = set()
     for artist_id in artist_ids:
-        genres.update(artist_genres.get(artist_id, {}).get("genres", []))
+        genres.update(artist_genres[artist_id])
     with genre_lock:
         track_genres[track_id] = list(genres)
 
