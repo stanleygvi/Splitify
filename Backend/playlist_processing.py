@@ -1,4 +1,5 @@
 from threading import Thread, Lock
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from Backend.spotify_api import (
     get_playlist_length,
@@ -40,21 +41,17 @@ def clean_audio_features(
 
 
 def process_playlists(auth_token, playlist_ids):
-    threads = []
-    for playlist_id in playlist_ids:
-        length = get_playlist_length(playlist_id, auth_token)
-        if length == -1:
-            print(f"Error fetching playlist length for {playlist_id}")
-            continue
-
-        thread = Thread(
-            target=process_single_playlist, args=(auth_token, playlist_id, length)
-        )
-        thread.start()
-        threads.append(thread)
-
-    for thread in threads:
-        thread.join()
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [
+            executor.submit(process_single_playlist, auth_token, playlist_id, get_playlist_length(playlist_id, auth_token))
+            for playlist_id in playlist_ids
+            if get_playlist_length(playlist_id, auth_token) != -1
+        ]
+        for future in futures:
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error processing playlist: {e}")
 
 
 # K MEANS CLUSTERING ----------------------------------------------------------------------
@@ -239,30 +236,27 @@ def fetch_genres(artist_ids, track_id, auth_token, data_store, genre_lock):
             data_store["genres"].append({"track_id": track_id, "genres": list(genres)})
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
-    time.sleep(0.5)
     response = get_playlist_children(start_index, playlist_id, auth_token)
     if response and "items" in response:
         tracks = response["items"]
-        print(tracks)
         track_to_artists = {
             track["track"]["id"]: [artist["id"] for artist in track["track"]["artists"]]
             for track in tracks
             if track["track"] and "artists" in track["track"]
         }
+
         genre_lock = Lock()
-        threads = []
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [
+                executor.submit(fetch_genres, artist_ids, track_id, auth_token, data_store, genre_lock)
+                for track_id, artist_ids in track_to_artists.items()
+            ]
+            for future in futures:
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Error fetching genres: {e}")
 
-        for track_id, artist_ids in track_to_artists.items():
-            thread = Thread(target=fetch_genres, args=(artist_ids, track_id, auth_token, data_store, genre_lock))
-            thread.start()
-            threads.append(thread)
-            time.sleep(0.5)
-
-        for thread in threads:
-            thread.join()
-
-        print(
-            f"Appended {len(response['items'])} tracks' genres from playlist starting at index {start_index}"
-        )
+        print(f"Appended {len(response['items'])} tracks' genres from playlist starting at index {start_index}")
     else:
         print(f"Failed to append playlist data from index {start_index}")
