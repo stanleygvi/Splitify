@@ -1,7 +1,7 @@
 import requests
 import os
 import time
-
+import asyncio
 
 SPOTIFY_API_URL = "https://api.spotify.com/v1"
 
@@ -114,7 +114,7 @@ def get_playlist_name(playlist_id, auth_token):
     return ""
 
 
-def get_playlist_children(start_index, playlist_id, auth_token):
+async def get_playlist_children(start_index, playlist_id, auth_token):
     endpoint = f"/playlists/{playlist_id}/tracks"
     params = {
         "offset": start_index,
@@ -133,7 +133,7 @@ def get_audio_features(track_ids: list[str], auth_token) -> list[dict[str, float
     return response["audio_features"]
 
 
-def create_playlist(user_id, auth_token, name, description):
+async def create_playlist(user_id, auth_token, name, description):
     endpoint = f"/users/{user_id}/playlists"
     json_data = {"name": name, "description": description, "public": True}
     response = spotify_request("POST", endpoint, auth_token, json_data=json_data)
@@ -142,7 +142,7 @@ def create_playlist(user_id, auth_token, name, description):
     return None
 
 
-def add_songs(playlist_id, track_uris, auth_token, position):
+async def add_songs(playlist_id, track_uris, auth_token, position):
     endpoint = f"/playlists/{playlist_id}/tracks"
     json_data = {"uris": track_uris, "position": position}
     response = spotify_request("POST", endpoint, auth_token, json_data=json_data)

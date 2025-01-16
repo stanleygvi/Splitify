@@ -1,6 +1,6 @@
-from threading import  Lock
-from concurrent.futures import ThreadPoolExecutor
+import asyncio
 from collections import Counter
+from threading import Lock
 from Backend.spotify_api import (
     get_playlist_length,
     get_playlist_children,
@@ -11,16 +11,26 @@ from Backend.spotify_api import (
     get_artists,
 )
 from Backend.helpers import calc_slices
-import time
 
-def assign_genres_to_tracks(auth_token, playlist_id):
+async def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
+    """Fetch genres for a given list of artist IDs and assign them to a track."""
+    artist_genres = get_artists(artist_ids, auth_token)
+    genres = set()
+    for artist_id in artist_ids:
+        genres.update(artist_genres.get(artist_id, []))
+    with genre_lock:
+        track_genres[track_id] = list(genres)
+        print(f"{track_id} track genres: {track_genres[track_id]}")
+
+async def assign_genres_to_tracks(auth_token, playlist_id):
     """Assign genres to each track and return a mapping of track_id to genres."""
     slices = calc_slices(get_playlist_length(playlist_id, auth_token))
     track_genres = {}
     genre_lock = Lock()
 
+    tasks = []
     for i in range(0, slices * 100, 100):
-        response = get_playlist_children(i, playlist_id, auth_token)
+        response = await get_playlist_children(i, playlist_id, auth_token)
         if response and "items" in response:
             tracks = response["items"]
             track_to_artists = {
@@ -28,41 +38,18 @@ def assign_genres_to_tracks(auth_token, playlist_id):
                 for track in tracks
                 if track["track"] and "artists" in track["track"]
             }
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [
-                    executor.submit(
-                        fetch_genres,
-                        artist_ids,
-                        track_id,
-                        auth_token,
-                        track_genres,
-                        genre_lock,
-                    )
-                    for track_id, artist_ids in track_to_artists.items()
-                ]
-                for future in futures:
-                    try:
-                        future.result()
-                    except Exception as e:
-                        print(f"Error fetching genres: {e}")
+            for track_id, artist_ids in track_to_artists.items():
+                tasks.append(fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock))
+
+    await asyncio.gather(*tasks)
     return track_genres
 
-def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
-    """Fetch genres for a given list of artist IDs and assign them to a track."""
-    artist_genres = get_artists(artist_ids, auth_token)
-    genres = set()
-    for artist_id in artist_ids:
-        genres.update(artist_genres[artist_id])
-    with genre_lock:
-        track_genres[track_id] = list(genres)
-        print(f"{track_id} track genres: {track_genres[track_id]}")
-
-def sort_genres_by_count(track_genres):
+async def sort_genres_by_count(track_genres):
     """Return a sorted list of genres by frequency in ascending order."""
     genre_counter = Counter(genre for genres in track_genres.values() for genre in genres)
     return sorted(genre_counter.items(), key=lambda x: x[1])
 
-def create_and_populate_subgenre_playlists(
+async def create_and_populate_subgenre_playlists(
     sorted_genres, track_genres, tracks_data, user_id, auth_token, playlist_name
 ):
     """Create playlists divided by subgenre, prioritizing lower count genres first."""
@@ -77,7 +64,7 @@ def create_and_populate_subgenre_playlists(
         if not genre_tracks:
             continue
 
-        playlist_id = create_playlist(
+        playlist_id = await create_playlist(
             user_id,
             auth_token,
             f"{playlist_name} - {genre}",
@@ -91,11 +78,11 @@ def create_and_populate_subgenre_playlists(
             else:
                 track_slice = genre_tracks[position : position + 100]
 
-            track_uris = [f"spotify:track:{tracks_data[track_id]["uri"]}" for track_id in track_slice]
-            
+            track_uris = [f"spotify:track:{tracks_data[track_id]['uri']}" for track_id in track_slice]
+
             print(f"track_uris: {track_uris}")
-            status = add_songs(playlist_id, track_uris, auth_token, position)
-            time.sleep(0.5)
+            status = await add_songs(playlist_id, track_uris, auth_token, position)
+            await asyncio.sleep(0.5)
 
             if not status or status.get("Error", None):
                 print(
@@ -104,25 +91,29 @@ def create_and_populate_subgenre_playlists(
 
         used_tracks.update(genre_tracks)
 
-def process_playlists(auth_token, playlist_ids):
-    """Process multiple playlists by splitting them into subgenre playlists."""
-    for playlist_id in playlist_ids:
-        process_single_playlist(auth_token, playlist_id)
-
-def process_single_playlist(auth_token, playlist_id):
+async def process_single_playlist(auth_token, playlist_id):
     """Process a single playlist and divide its tracks into subgenre playlists."""
-    playlist_name = get_playlist_name(playlist_id, auth_token)
-    user_id = get_user_id(auth_token)
+    playlist_name =  get_playlist_name(playlist_id, auth_token)
+    user_id =  get_user_id(auth_token)
 
-    track_genres = assign_genres_to_tracks(auth_token, playlist_id)
+    track_genres = await assign_genres_to_tracks(auth_token, playlist_id)
     print(f"track genres full: {track_genres}")
     tracks_data = {
         track_id: {"uri": track_id}
         for track_id in track_genres.keys()
     }
 
-    sorted_genres = sort_genres_by_count(track_genres)
+    sorted_genres = await sort_genres_by_count(track_genres)
     print(f"sorted genres: {sorted_genres}")
-    create_and_populate_subgenre_playlists(
+    await create_and_populate_subgenre_playlists(
         sorted_genres, track_genres, tracks_data, user_id, auth_token, playlist_name
     )
+
+async def process_playlists(auth_token, playlist_ids):
+    """Process multiple playlists by splitting them into subgenre playlists."""
+    tasks = [process_single_playlist(auth_token, playlist_id) for playlist_id in playlist_ids]
+    await asyncio.gather(*tasks)
+
+# Entry point for the script
+def main(auth_token, playlist_ids):
+    asyncio.run(process_playlists(auth_token, playlist_ids))
