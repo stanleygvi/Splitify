@@ -11,6 +11,7 @@ from Backend.spotify_api import (
     get_all_playlists,
     exchange_code_for_token,
     get_user_id,
+    process_all
 )
 from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
@@ -146,7 +147,7 @@ def process_playlist_handler():
 
     if not playlist_ids:
         return "No playlist IDs provided", 400
-    process_playlists(auth_token, playlist_ids)
+    process_all(auth_token, playlist_ids)
 
     return jsonify({"message": "Playlists processed successfully!"}), 200
 
