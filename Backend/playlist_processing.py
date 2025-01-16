@@ -50,31 +50,12 @@ def assign_genres_to_tracks(auth_token, playlist_id):
 
 def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
     """Fetch genres for a given list of artist IDs and assign them to a track."""
-    artist_genres = get_artist_details(artist_ids, auth_token)
+    artist_genres = get_artists(artist_ids, auth_token)
     genres = set()
     for artist_id in artist_ids:
         genres.update(artist_genres.get(artist_id, {}).get("genres", []))
     with genre_lock:
         track_genres[track_id] = list(genres)
-
-def get_artist_details(artist_ids, auth_token):
-    """Fetch artist details, specifically genres, for a list of artist IDs."""
-    artist_details = {}
-    chunk_size = 50
-
-    for i in range(0, len(artist_ids), chunk_size):
-        artist_chunk = artist_ids[i:i + chunk_size]
-        response = get_artists(artist_chunk, auth_token)
-        print(response)
-        if response and "artists" in response:
-            for artist in response["artists"]:
-                artist_details[artist["id"]] = {
-                    "genres": artist.get("genres", [])
-                }
-        else:
-            print(f"Failed to fetch details for artist IDs: {artist_chunk}")
-
-    return artist_details
 
 def sort_genres_by_count(track_genres):
     """Return a sorted list of genres by frequency in ascending order."""
