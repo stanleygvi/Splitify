@@ -79,7 +79,7 @@ async def redirect_to_spotify_login():
         "client_id": client_id,
         "scope": scope,
         "show_dialog": "true",
-        "redirect_uri": "https://splitify-fac76.web.app/callback",
+        "redirect_uri": "https://www.splitifytool.com/callback",
         "state": state,
     }
 
