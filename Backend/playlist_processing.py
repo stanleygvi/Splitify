@@ -65,7 +65,7 @@ def get_artist_details(artist_ids, auth_token):
     for i in range(0, len(artist_ids), chunk_size):
         artist_chunk = artist_ids[i:i + chunk_size]
         response = get_artists(artist_chunk, auth_token)
-
+        print(response)
         if response and "artists" in response:
             for artist in response["artists"]:
                 artist_details[artist["id"]] = {
