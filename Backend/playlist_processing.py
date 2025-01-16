@@ -28,7 +28,6 @@ def assign_genres_to_tracks(auth_token, playlist_id):
                 for track in tracks
                 if track["track"] and "artists" in track["track"]
             }
-            print(track_to_artists)
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [
                     executor.submit(
@@ -56,6 +55,7 @@ def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
         genres.update(artist_genres[artist_id])
     with genre_lock:
         track_genres[track_id] = list(genres)
+        print(f"{track_id} track genres: {track_genres[track_id]}")
 
 def sort_genres_by_count(track_genres):
     """Return a sorted list of genres by frequency in ascending order."""
@@ -113,14 +113,14 @@ def process_single_playlist(auth_token, playlist_id):
     user_id = get_user_id(auth_token)
 
     track_genres = assign_genres_to_tracks(auth_token, playlist_id)
-
+    print(f"track genres full: {track_genres}")
     tracks_data = {
         track_id: {"uri": track_id}
         for track_id in track_genres.keys()
     }
 
     sorted_genres = sort_genres_by_count(track_genres)
-
+    print(f"sorted genres: {sorted_genres}")
     create_and_populate_subgenre_playlists(
         sorted_genres, track_genres, tracks_data, user_id, auth_token, playlist_name
     )

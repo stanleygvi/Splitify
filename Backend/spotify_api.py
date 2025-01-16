@@ -159,7 +159,6 @@ def get_artists(artist_ids, auth_token):
         batch = artist_ids[i : i + batch_size]
         endpoint = "/artists"
         params = {"ids": ",".join(batch)}
-        print(params)
         response = spotify_request("GET", endpoint, auth_token, params=params)
         if response and "artists" in response:
             for artist in response["artists"]:
