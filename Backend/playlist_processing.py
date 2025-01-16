@@ -25,7 +25,7 @@ async def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_cac
             if artist_id in genre_cache:
                 genres.update(genre_cache[artist_id])
             else:
-                artist_genres = get_artists([artist_id], auth_token)
+                artist_genres = await get_artists([artist_id], auth_token)
                 genre_cache[artist_id] = artist_genres.get(artist_id, [])
                 genres.update(genre_cache[artist_id])
 
