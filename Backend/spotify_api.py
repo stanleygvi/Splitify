@@ -142,3 +142,9 @@ def add_songs(playlist_id, track_uris, auth_token, position):
     if response:
         return response
     return None
+
+def get_artists(artist_ids, auth_token):
+    endpoint = "/artists"
+    params = {"ids": ",".join(artist_ids)}
+    response = spotify_request("GET", endpoint, auth_token, params=params)
+    return response
