@@ -146,7 +146,7 @@ def process_playlist_handler():
 
     if not playlist_ids:
         return "No playlist IDs provided", 400
-    
+
     process_all(auth_token, playlist_ids)
 
     return jsonify({"message": "Playlists processed successfully!"}), 200
