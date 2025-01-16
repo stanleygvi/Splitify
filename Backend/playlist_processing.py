@@ -58,7 +58,6 @@ def process_playlists(auth_token, playlist_ids):
 
 
 # K MEANS CLUSTERING ----------------------------------------------------------------------
-
 # def process_single_playlist(auth_token, playlist_id, total_length):
 #     name = get_playlist_name(playlist_id, auth_token)
 #     slices = calc_slices(total_length)
@@ -133,8 +132,6 @@ def get_artist_details(artist_ids, auth_token):
 
 
 # Subgenre --------------------------------------------------------------------------------------------------------
-
-
 def process_single_playlist(auth_token, playlist_id, total_length):
     name = get_playlist_name(playlist_id, auth_token)
     slices = calc_slices(total_length)
@@ -212,19 +209,43 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
                 f"Append Error: Playlist{name} split, status {status} starting from index: {position}"
             )
 
+# K MEANS CLUSTERING ----------------------------------------------------------------------
+# def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
+#     response = get_playlist_children(start_index, playlist_id, auth_token)
+#     if response and "items" in response:
+
+#         track_ids = extract_ids(response["items"])
+#         audio_features = get_audio_features(track_ids, auth_token)
+#         clean_audio_features(
+#             audio_features, ["type", "id", "track_href", "analysis_url", "duration_ms"]
+#         )
+#         data_store["tracks"].extend(audio_features)
+#         print(
+#             f"Appended {len(response["items"])} tracks from playlist starting at index {start_index}"
+#         )
+#     else:
+#         print(f"Failed to append playlist data from index {start_index}")
+# ----------------------------------------------------------------------------------------
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
     response = get_playlist_children(start_index, playlist_id, auth_token)
     if response and "items" in response:
+        tracks = response["items"]
+        track_ids = [track["track"]["id"] for track in tracks if track["track"]]
+        artist_ids = [artist["id"] for track in tracks for artist in track["track"]["artists"] if track["track"] and "artists" in track["track"]]
 
-        track_ids = extract_ids(response["items"])
         audio_features = get_audio_features(track_ids, auth_token)
         clean_audio_features(
             audio_features, ["type", "id", "track_href", "analysis_url", "duration_ms"]
         )
+
+        for i, feature in enumerate(audio_features):
+            if feature:
+                feature["artist_id"] = artist_ids[i]
+
         data_store["tracks"].extend(audio_features)
         print(
-            f"Appended {len(response["items"])} tracks from playlist starting at index {start_index}"
+            f"Appended {len(response['items'])} tracks from playlist starting at index {start_index}"
         )
     else:
         print(f"Failed to append playlist data from index {start_index}")
