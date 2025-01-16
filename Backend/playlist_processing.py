@@ -12,12 +12,17 @@ from Backend.spotify_api import (
 )
 from Backend.helpers import calc_slices
 
-async def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock):
+async def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_cache, genre_lock):
     """Fetch genres for a given list of artist IDs and assign them to a track."""
-    artist_genres = get_artists(artist_ids, auth_token)
     genres = set()
     for artist_id in artist_ids:
-        genres.update(artist_genres.get(artist_id, []))
+        if artist_id in genre_cache:
+            genres.update(genre_cache[artist_id])
+        else:
+            artist_genres = get_artists([artist_id], auth_token)
+            genre_cache[artist_id] = artist_genres.get(artist_id, [])
+            genres.update(genre_cache[artist_id])
+
     with genre_lock:
         track_genres[track_id] = list(genres)
 
@@ -25,6 +30,7 @@ async def assign_genres_to_tracks(auth_token, playlist_id):
     """Assign genres to each track and return a mapping of track_id to genres."""
     slices = calc_slices(get_playlist_length(playlist_id, auth_token))
     track_genres = {}
+    genre_cache = {}
     genre_lock = Lock()
 
     tasks = []
@@ -38,7 +44,7 @@ async def assign_genres_to_tracks(auth_token, playlist_id):
                 if track["track"] and "artists" in track["track"]
             }
             for track_id, artist_ids in track_to_artists.items():
-                tasks.append(fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_lock))
+                tasks.append(fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_cache, genre_lock))
 
     await asyncio.gather(*tasks)
     return track_genres
