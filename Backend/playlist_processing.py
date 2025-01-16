@@ -139,7 +139,6 @@ def process_single_playlist(auth_token, playlist_id, total_length):
 
     for i in range(0, slices * 100, 100):
         append_to_playlist_data(i, playlist_id, auth_token, playlist_data_store)
-        time.sleep(0.5)
 
     if len(playlist_data_store["tracks"]) < 1:
         print(f"Failed to process playlist: {playlist_id}")
@@ -240,6 +239,7 @@ def fetch_genres(artist_ids, track_id, auth_token, data_store, genre_lock):
             data_store["genres"].append({"track_id": track_id, "genres": list(genres)})
 
 def append_to_playlist_data(start_index, playlist_id, auth_token, data_store):
+    time.sleep(0.5)
     response = get_playlist_children(start_index, playlist_id, auth_token)
     if response and "items" in response:
         tracks = response["items"]
