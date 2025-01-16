@@ -20,7 +20,6 @@ async def fetch_genres(artist_ids, track_id, auth_token, track_genres, genre_loc
         genres.update(artist_genres.get(artist_id, []))
     with genre_lock:
         track_genres[track_id] = list(genres)
-        print(f"{track_id} track genres: {track_genres[track_id]}")
 
 async def assign_genres_to_tracks(auth_token, playlist_id):
     """Assign genres to each track and return a mapping of track_id to genres."""
@@ -80,7 +79,6 @@ async def create_and_populate_subgenre_playlists(
 
             track_uris = [f"spotify:track:{tracks_data[track_id]['uri']}" for track_id in track_slice]
 
-            print(f"track_uris: {track_uris}")
             status = await add_songs(playlist_id, track_uris, auth_token, position)
             await asyncio.sleep(0.5)
 
@@ -97,14 +95,12 @@ async def process_single_playlist(auth_token, playlist_id):
     user_id =  get_user_id(auth_token)
 
     track_genres = await assign_genres_to_tracks(auth_token, playlist_id)
-    print(f"track genres full: {track_genres}")
     tracks_data = {
         track_id: {"uri": track_id}
         for track_id in track_genres.keys()
     }
 
     sorted_genres = await sort_genres_by_count(track_genres)
-    print(f"sorted genres: {sorted_genres}")
     await create_and_populate_subgenre_playlists(
         sorted_genres, track_genres, tracks_data, user_id, auth_token, playlist_name
     )
