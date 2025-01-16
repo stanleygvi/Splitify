@@ -152,7 +152,7 @@ async def add_songs(playlist_id, track_uris, auth_token, position):
     return None
 
 
-def get_artists(artist_ids, auth_token):
+async def get_artists(artist_ids, auth_token):
     """Fetch details for multiple artists in batches of 50."""
     all_artists = {}
     batch_size = 50
@@ -164,5 +164,5 @@ def get_artists(artist_ids, auth_token):
         if response and "artists" in response:
             for artist in response["artists"]:
                 all_artists[artist["id"]] = artist.get("genres", [])
-        time.sleep(0.5)
+        await asyncio.sleep(0.1)
     return all_artists
