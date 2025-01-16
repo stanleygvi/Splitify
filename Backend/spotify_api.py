@@ -1,5 +1,6 @@
 import requests
 import os
+import time
 
 
 SPOTIFY_API_URL = "https://api.spotify.com/v1"
@@ -156,4 +157,5 @@ def get_artists(artist_ids, auth_token):
         if response and "artists" in response:
             for artist in response["artists"]:
                 all_artists[artist["id"]] = artist.get("genres", [])
+        time.sleep(0.5)
     return all_artists

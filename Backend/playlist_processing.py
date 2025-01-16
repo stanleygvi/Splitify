@@ -230,7 +230,6 @@ def created_and_populate(cluster_df, user_id, auth_token, name):
 
 
 def fetch_genres(artist_ids, track_id, auth_token, data_store, genre_lock):
-    """Fetch genres for a track's artists and store them in the data store."""
     artist_data = get_artists(artist_ids, auth_token)
     if artist_data and "artists" in artist_data:
         genres = set()
