@@ -95,9 +95,7 @@ async def sort_genres_by_count(track_genres):
         return []
 
 
-async def create_and_populate_single_genre_playlist(
-    genre, genre_tracks, tracks_data, user_id, auth_token, playlist_name, used_tracks
-):
+async def create_and_populate_single_genre_playlist(genre, genre_tracks, tracks_data, user_id, auth_token, playlist_name, used_tracks):
     """Create and populate a single genre playlist."""
     try:
         playlist_id = await create_playlist(
@@ -110,19 +108,16 @@ async def create_and_populate_single_genre_playlist(
         slices = calc_slices(len(genre_tracks))
         tasks = []
         for position in range(0, slices * 100, 100):
-            track_slice = genre_tracks[position : position + 100]
-            track_uris = [
-                f"spotify:track:{tracks_data[track_id]['uri']}"
-                for track_id in track_slice
-            ]
+            track_slice = genre_tracks[position: position + 100]
+            track_uris = [f"spotify:track:{tracks_data[track_id]['uri']}" for track_id in track_slice]
             tasks.append(add_songs(playlist_id, track_uris, auth_token, position))
 
         await asyncio.gather(*tasks)
 
+        # Mark these tracks as used
         used_tracks.update(genre_tracks)
     except Exception as e:
         print(f"Error creating or populating playlist for genre {genre}: {e}")
-
 
 async def create_and_populate_subgenre_playlists(
     sorted_genres, track_genres, tracks_data, user_id, auth_token, playlist_name
@@ -133,27 +128,23 @@ async def create_and_populate_subgenre_playlists(
         used_tracks = set()
         tasks = []
 
+        total_tracks = sum(len(genres) for genres in track_genres.values())
+
         for genre, _ in sorted_genres:
             genre_tracks = [
                 track_id
                 for track_id, genres in track_genres.items()
                 if genre in genres and track_id not in used_tracks
             ]
-            if not genre_tracks:
+
+            # Check if the genre constitutes >= 20% of the playlist
+            if len(genre_tracks) / total_tracks < 0.2:
                 continue
 
             # Schedule the creation of this genre's playlist
-            tasks.append(
-                create_and_populate_single_genre_playlist(
-                    genre,
-                    genre_tracks,
-                    tracks_data,
-                    user_id,
-                    auth_token,
-                    playlist_name,
-                    used_tracks,
-                )
-            )
+            tasks.append(create_and_populate_single_genre_playlist(
+                genre, genre_tracks, tracks_data, user_id, auth_token, playlist_name, used_tracks
+            ))
 
         # Run all genre playlist creations concurrently
         await asyncio.gather(*tasks)
