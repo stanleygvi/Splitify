@@ -8,7 +8,7 @@ from Backend.spotify_api import (
     get_user_id,
     get_audio_features,
     get_playlist_name,
-    get_artists
+    get_artists,
 )
 from Backend.helpers import calc_slices
 from Backend.grouping import cluster_df
@@ -56,6 +56,7 @@ def process_playlists(auth_token, playlist_ids):
     for thread in threads:
         thread.join()
 
+
 # K MEANS CLUSTERING ----------------------------------------------------------------------
 
 # def process_single_playlist(auth_token, playlist_id, total_length):
@@ -84,7 +85,10 @@ def process_playlists(auth_token, playlist_ids):
 #         thread.join()
 # ----------------------------------------------------------------------------------------
 
-def create_and_populate_subgenre_playlist(subgenre, tracks, user_id, auth_token, original_playlist_name):
+
+def create_and_populate_subgenre_playlist(
+    subgenre, tracks, user_id, auth_token, original_playlist_name
+):
     """Create and populate a playlist for a specific subgenre."""
     if not tracks:
         return
@@ -130,6 +134,7 @@ def get_artist_details(artist_ids, auth_token):
 
 # Subgenre --------------------------------------------------------------------------------------------------------
 
+
 def process_single_playlist(auth_token, playlist_id, total_length):
     name = get_playlist_name(playlist_id, auth_token)
     slices = calc_slices(total_length)
@@ -143,7 +148,13 @@ def process_single_playlist(auth_token, playlist_id, total_length):
         return
 
     # track_ids = [track["id"] for track in playlist_data_store["tracks"]]
-    artist_ids = list({track["artist_id"] for track in playlist_data_store["tracks"] if "artist_id" in track})
+    artist_ids = list(
+        {
+            track["artist_id"]
+            for track in playlist_data_store["tracks"]
+            if "artist_id" in track
+        }
+    )
 
     artist_data = get_artist_details(artist_ids, auth_token)
 

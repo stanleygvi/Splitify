@@ -1,10 +1,10 @@
+import redis
+import os
 from flask import Flask, request, redirect, jsonify, url_for, make_response, session
 from flask_session import Session
 from datetime import timedelta
 from flask_cors import CORS
 from urllib.parse import urlparse
-import redis
-import os
 from Backend.spotify_api import (
     is_access_token_valid,
     refresh_access_token,
@@ -14,9 +14,16 @@ from Backend.spotify_api import (
 )
 from Backend.playlist_processing import process_playlists
 from Backend.helpers import generate_random_string
+
 url = urlparse(os.environ.get("REDIS_URL"))
 
-db = redis.Redis(host=url.hostname, port=url.port, password=url.password, ssl=(url.scheme == "rediss"), ssl_cert_reqs=None)
+db = redis.Redis(
+    host=url.hostname,
+    port=url.port,
+    password=url.password,
+    ssl=(url.scheme == "rediss"),
+    ssl_cert_reqs=None,
+)
 
 app = Flask(__name__)
 
@@ -36,9 +43,11 @@ redis_url = os.getenv("REDIS_URL")
 sess = Session()
 sess.init_app(app)
 
-CORS(app, origins=["https://www.splitifytool.com", "https://splitify-fac76.web.app"], supports_credentials=True)
-
-
+CORS(
+    app,
+    origins=["https://www.splitifytool.com", "https://splitify-fac76.web.app"],
+    supports_credentials=True,
+)
 
 
 @app.route("/login")
@@ -54,7 +63,9 @@ def login_handler():
             else:
                 return redirect_to_spotify_login()
 
-        response = make_response(redirect("https://www.splitifytool.com/input-playlist"))
+        response = make_response(
+            redirect("https://www.splitifytool.com/input-playlist")
+        )
         response.set_cookie(
             "auth_token", auth_token, httponly=True, secure=True, samesite="None"
         )
@@ -101,9 +112,7 @@ def callback_handler():
     db.set(f"{user_id}_REFRESH_TOKEN", token_data.get("refresh_token"))
 
     response = make_response(redirect("https://splitify-fac76.web.app/input-playlist"))
-    response.set_cookie(
-        "auth_token", auth_token, secure=True, samesite="None"
-    )
+    response.set_cookie("auth_token", auth_token, secure=True, samesite="None")
 
     return response
 

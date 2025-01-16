@@ -143,6 +143,7 @@ def add_songs(playlist_id, track_uris, auth_token, position):
         return response
     return None
 
+
 def get_artists(artist_ids, auth_token):
     endpoint = "/artists"
     params = {"ids": ",".join(artist_ids)}
