@@ -164,5 +164,5 @@ async def get_artists(artist_ids, auth_token):
         if response and "artists" in response:
             for artist in response["artists"]:
                 all_artists[artist["id"]] = artist.get("genres", [])
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
     return all_artists

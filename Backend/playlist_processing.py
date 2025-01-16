@@ -110,7 +110,7 @@ async def create_and_populate_subgenre_playlists(
                     track_uris = [f"spotify:track:{tracks_data[track_id]['uri']}" for track_id in track_slice]
 
                     status = await add_songs(playlist_id, track_uris, auth_token, position)
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.5)
 
                     if not status or status.get("Error", None):
                         print(
